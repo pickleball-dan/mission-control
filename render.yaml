@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: mission-control
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: commit
