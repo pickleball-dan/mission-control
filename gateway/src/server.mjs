@@ -66,7 +66,7 @@ export class GoogleTokenVerifier {
     this.jwks = jwks
   }
 
-  async verify(token) {
+  async verify(token, { nonce } = {}) {
     let payload
     try {
       ;({ payload } = await jwtVerify(token, this.jwks, {
@@ -83,6 +83,7 @@ export class GoogleTokenVerifier {
       payload.email_verified !== true
       || typeof payload.sub !== 'string'
       || typeof payload.exp !== 'number'
+      || (nonce && payload.nonce !== nonce)
       || !email
       || !this.config.allowedEmails.has(email)
     ) {
@@ -145,6 +146,7 @@ export function createGatewayServer({
         const body = await readJsonBody(request, 8 * 1024)
         const code = boundedString(body.code, 'code', 4_096)
         const codeVerifier = boundedString(body.code_verifier, 'code_verifier', 128)
+        const nonce = boundedString(body.nonce, 'nonce', 256)
         const redirectUri = boundedString(body.redirect_uri, 'redirect_uri', 2_048)
         if (codeVerifier.length < 43 || redirectUri !== config.callbackUrl) {
           throw new RequestError(400, 'invalid_request')
@@ -154,7 +156,7 @@ export function createGatewayServer({
           config,
           fetchImpl,
         )
-        const identity = await tokenVerifier.verify(tokenPayload.id_token)
+        const identity = await tokenVerifier.verify(tokenPayload.id_token, { nonce })
         return sendJson(response, 200, {
           id_token: tokenPayload.id_token,
           expires_at: identity.exp || null,

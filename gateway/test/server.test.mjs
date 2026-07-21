@@ -70,6 +70,8 @@ test('Google verifier enforces signature, issuer, audience, expiration, verified
     .sign(privateKey)
 
   assert.equal((await verifier.verify(await token())).email, 'allowed@example.com')
+  assert.equal((await verifier.verify(await token({ nonce: 'expected-nonce' }), { nonce: 'expected-nonce' })).email, 'allowed@example.com')
+  await assert.rejects(verifier.verify(await token({ nonce: 'expected-nonce' }), { nonce: 'wrong-nonce' }), /forbidden/)
   await assert.rejects(verifier.verify(await token({ audience: 'wrong-client' })), /unauthorized/)
   await assert.rejects(verifier.verify(await token({ issuer: 'https://issuer.example.com' })), /unauthorized/)
   await assert.rejects(verifier.verify(await token({ expiration: '0s' })), /unauthorized/)
@@ -102,6 +104,7 @@ test('token exchange uses PKCE and returns only a validated ID token', async () 
     body: JSON.stringify({
       code: 'authorization-code',
       code_verifier: 'v'.repeat(64),
+      nonce: 'browser-nonce',
       redirect_uri: `${origin}/namengine/openai-usage`,
     }),
   })

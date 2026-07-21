@@ -14,6 +14,7 @@ import {
   Target,
   X,
 } from 'lucide-react'
+import NamEngineOpenAIUsage from './NamEngineOpenAIUsage'
 
 type Status = 'Active' | 'Planning' | 'Paused' | 'Launched'
 type Priority = 'Critical' | 'High' | 'Medium' | 'Low'
@@ -97,7 +98,7 @@ function loadProjects(): Project[] {
   }
 }
 
-function App() {
+function PortfolioDashboard() {
   const [projects, setProjects] = useState<Project[]>(loadProjects)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'All' | Status>('All')
@@ -294,6 +295,12 @@ function App() {
       )}
     </div>
   )
+}
+
+function App() {
+  const path = window.location.pathname.replace(/\/$/, '') || '/'
+  if (path === '/namengine/openai-usage') return <NamEngineOpenAIUsage />
+  return <PortfolioDashboard />
 }
 
 function Metric({ icon, label, value, note }: { icon: React.ReactNode; label: string; value: string | number; note: string }) {
