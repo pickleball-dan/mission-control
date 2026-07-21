@@ -162,7 +162,7 @@ function PortfolioDashboard() {
           <button className="nav-item active"><LayoutDashboard size={18} /> Overview</button>
           <button className="nav-item"><Target size={18} /> Projects</button>
           <button className="nav-item"><Rocket size={18} /> Launches</button>
-          <button className="nav-item"><Activity size={18} /> Operating pulse</button>
+          <a className="nav-item nav-link" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
         </nav>
         <div className="sidebar-note">
           <Sparkles size={18} />
@@ -299,7 +299,7 @@ function PortfolioDashboard() {
 
 function App() {
   const path = window.location.pathname.replace(/\/$/, '') || '/'
-  if (path === '/namengine/openai-usage') return <NamEngineOpenAIUsage />
+  if (path === '/operating-pulse' || path === '/namengine/openai-usage') return <NamEngineOpenAIUsage />
   return <PortfolioDashboard />
 }
 
