@@ -5,3 +5,29 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     autoDeployTrigger: commit
+
+  - type: web
+    name: mission-control-telemetry-gateway
+    runtime: node
+    rootDir: gateway
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: NAMENGINE_TELEMETRY_URL
+        sync: false
+      - key: NAMENGINE_TELEMETRY_TOKEN
+        sync: false
+      - key: GOOGLE_OIDC_ISSUER
+        value: https://accounts.google.com
+      - key: GOOGLE_OIDC_AUDIENCE
+        sync: false
+      - key: GOOGLE_OIDC_CLIENT_SECRET
+        sync: false
+      - key: TELEMETRY_ALLOWED_EMAILS
+        sync: false
+      - key: MISSION_CONTROL_ORIGIN
+        sync: false
