@@ -207,6 +207,23 @@ function PortfolioDashboard() {
           </div>
         </section>
 
+        <section className="operational-tools">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Operations</p>
+              <h2>Tools</h2>
+            </div>
+          </div>
+          <a className="tool-card" href="/namengine/openai-usage">
+            <div className="metric-icon"><Activity size={20} /></div>
+            <div>
+              <span>AI Cost</span>
+              <strong>OpenAI usage, spend, tokens, latency, and request trends.</strong>
+            </div>
+            <ArrowUpRight size={17} />
+          </a>
+        </section>
+
         <section className="workspace">
           <div className="section-heading">
             <div>

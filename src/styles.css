@@ -70,6 +70,12 @@ p { color: var(--muted); line-height: 1.55; }
 .focus-actions a, .drawer-link { display: inline-flex; align-items: center; gap: 7px; color: inherit; font-weight: 700; text-decoration: none; font-size: 13px; }
 
 .workspace { min-width: 0; }
+.operational-tools { margin: 0 0 34px; }
+.tool-card { width: min(560px, 100%); padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: inherit; display: grid; grid-template-columns: 38px minmax(0, 1fr) 34px; align-items: center; gap: 13px; text-decoration: none; box-shadow: 0 10px 30px rgba(30,47,41,.035); transition: .18s ease; }
+.tool-card:hover { transform: translateY(-2px); border-color: #d6cfc3; box-shadow: var(--shadow); }
+.tool-card span { display: block; margin-bottom: 3px; color: var(--green); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.tool-card strong { display: block; color: var(--ink); font-size: 13px; line-height: 1.45; }
+.tool-card > svg { color: var(--green); justify-self: end; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 16px; }
 .controls { display: flex; align-items: center; gap: 10px; }
 .search-box { height: 42px; min-width: 250px; padding: 0 13px; border-radius: 11px; border: 1px solid var(--line); display: flex; align-items: center; gap: 8px; background: var(--panel); color: #8a918c; }
@@ -123,6 +129,21 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .telemetry-controls label { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .telemetry-controls select { min-width: 145px; padding: 9px 11px; }
 
+.cost-hero { margin-bottom: 18px; padding: clamp(24px, 4vw, 38px); border: 1px solid rgba(63,108,91,.18); border-radius: 22px; background: linear-gradient(135deg, #fffdf9 0%, #edf6ef 52%, #dcebe3 100%); display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 20px; box-shadow: var(--shadow); }
+.cost-hero-icon { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--green), var(--green-2)); box-shadow: 0 16px 34px rgba(41,76,64,.2); }
+.cost-hero strong { display: block; color: var(--green); font: 800 clamp(48px, 8vw, 82px) 'Manrope'; letter-spacing: -.07em; line-height: .95; }
+.cost-hero span { display: block; margin-top: 12px; color: var(--green-2); font-size: 14px; font-weight: 800; }
+.cost-kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 18px; }
+.cost-kpi-secondary .cost-card { border-color: rgba(63,108,91,.22); background: linear-gradient(180deg, #fffdf9, #f8fbf7); }
+.cost-kpi-secondary .cost-card .metric-icon { color: #fff; background: var(--green); }
+.cost-kpi-secondary .cost-card strong { color: var(--green); }
+.cost-kpi-operations { margin-bottom: 24px; }
+.cost-card-secondary { opacity: .88; }
+.cost-card-secondary .metric-icon { background: #eee8db; }
+.cost-card-secondary strong { font-size: 22px; }
+.operations-summary { background: linear-gradient(180deg, #fffdf9, #f8f4ec); }
+.cost-analytics-grid { margin-top: 4px; }
+
 .telemetry-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 18px; }
 .usage-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; box-shadow: 0 10px 30px rgba(30,47,41,.035); }
 .usage-card .metric-icon { grid-row: 1 / 3; }
@@ -172,7 +193,7 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 @media (max-width: 1100px) {
   .metrics-grid { grid-template-columns: repeat(2, 1fr); }
   .project-grid { grid-template-columns: repeat(2, 1fr); }
-  .telemetry-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .telemetry-metrics, .cost-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 780px) {
@@ -188,6 +209,8 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
   .project-grid { grid-template-columns: 1fr; }
   .telemetry-topbar { align-items: stretch; }
   .telemetry-actions { justify-content: space-between; }
+  .cost-hero { grid-template-columns: 1fr; align-items: start; }
+  .cost-hero strong { font-size: clamp(44px, 14vw, 68px); }
   .telemetry-grid { grid-template-columns: 1fr; }
   .telemetry-panel-wide { grid-column: auto; }
 }
@@ -195,7 +218,7 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 @media (max-width: 520px) {
   .metrics-grid, .form-row { grid-template-columns: 1fr; }
   .metric-card { padding: 15px; }
-  .telemetry-metrics { grid-template-columns: 1fr; }
+  .telemetry-metrics, .cost-kpi-row { grid-template-columns: 1fr; }
   .telemetry-controls { align-items: stretch; flex-direction: column; }
   .telemetry-controls label { justify-content: space-between; }
   .telemetry-controls .secondary-button { width: 100%; }
