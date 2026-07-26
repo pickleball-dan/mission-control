@@ -14,6 +14,7 @@ import {
   Target,
   X,
 } from 'lucide-react'
+import NamEngineCostSummaryCard from './NamEngineCostSummaryCard'
 import NamEngineOpenAIUsage from './NamEngineOpenAIUsage'
 
 type Status = 'Active' | 'Planning' | 'Paused' | 'Launched'
@@ -186,6 +187,7 @@ function PortfolioDashboard() {
         </header>
 
         <section className="metrics-grid">
+          <NamEngineCostSummaryCard />
           <Metric icon={<Rocket size={20} />} label="Active projects" value={activeProjects} note="Currently moving" />
           <Metric icon={<Target size={20} />} label="Average progress" value={`${averageProgress}%`} note="Across the portfolio" />
           <Metric icon={<AlertTriangle size={20} />} label="Critical priorities" value={criticalProjects} note="Needs executive focus" />
