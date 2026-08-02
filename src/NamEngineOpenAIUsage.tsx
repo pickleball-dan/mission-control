@@ -17,7 +17,7 @@ import {
   Zap,
 } from 'lucide-react'
 
-import { fetchUsageReport, TelemetryError, type UsageMetric, type UsageReport } from './telemetryApi'
+import { fetchUsageReport, TelemetryError, type SessionUsageMetric, type UsageMetric, type UsageReport } from './telemetryApi'
 import {
   beginGoogleSignIn,
   completeGoogleSignIn,
@@ -149,6 +149,7 @@ export default function NamEngineOpenAIUsage() {
 
             <section className="telemetry-grid">
               <ModelCostTable rows={report.requests_by_model} />
+              <SessionCostTable rows={report.requests_by_session ?? []} />
               <UsageBreakdown title="Usage by request type" labelKey="request_type" rows={report.requests_by_request_type} />
               <DailyUsage rows={report.requests_by_day} />
             </section>
@@ -169,6 +170,11 @@ function UsageCard({ icon, label, value }: { icon: React.ReactNode; label: strin
 
 function ModelCostTable({ rows }: { rows: Array<UsageMetric & { model: string }> }) {
   return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Cost</p><h2>Estimated cost by model</h2></div></div><div className="usage-table-wrap"><table className="usage-table"><thead><tr><th>Model</th><th>Requests</th><th>Input tokens</th><th>Output tokens</th><th>Estimated cost</th></tr></thead><tbody>{rows.map((row) => <tr key={row.model}><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.input_tokens)}</td><td>{formatNumber(row.output_tokens)}</td><td>{formatCurrency(estimateModelCost(row))}</td></tr>)}</tbody></table></div></article>
+}
+
+function SessionCostTable({ rows }: { rows: SessionUsageMetric[] }) {
+  const visibleRows = rows.slice(0, 25)
+  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <div className="usage-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>Session</th><th>Date</th><th>Vertical</th><th>Model</th><th>Requests</th><th>Tokens</th><th>Names</th><th>Avg. latency</th><th>Estimated cost</th></tr></thead><tbody>{visibleRows.map((row) => <tr key={row.session_id}><td><span className="session-id-cell" title={row.session_id}>{shortSessionId(row.session_id)}</span><small>{row.request_types.slice(0, 3).join(', ')}</small></td><td>{formatDate(row.date)}</td><td>{row.vertical}</td><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.total_tokens)}</td><td>{formatNumber(row.generated_name_count)}</td><td>{formatLatency(row.average_latency_ms)}</td><td>{formatCurrency(row.estimated_spend_usd, 4)}</td></tr>)}</tbody></table></div> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
 }
 
 function UsageBreakdown({ title, rows, labelKey }: { title: string; rows: Array<UsageMetric & Record<string, string | number>>; labelKey: string }) {
@@ -214,4 +220,9 @@ function formatLatency(value: number): string {
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
+}
+
+function shortSessionId(value: string): string {
+  if (value.length <= 22) return value
+  return `${value.slice(0, 11)}…${value.slice(-8)}`
 }

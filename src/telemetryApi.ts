@@ -12,6 +12,16 @@ export type UsageMetric = {
   maximum_latency_ms: number
   image_generation_count: number
   requests_missing_token_usage: number
+  estimated_spend_usd: number
+  generated_name_count: number
+}
+
+export type SessionUsageMetric = UsageMetric & {
+  session_id: string
+  date: string
+  vertical: string
+  model: string
+  request_types: string[]
 }
 
 export type UsageReport = {
@@ -20,6 +30,7 @@ export type UsageReport = {
   requests_by_day: Array<UsageMetric & { date: string }>
   requests_by_request_type: Array<UsageMetric & { request_type: string }>
   requests_by_model: Array<UsageMetric & { model: string }>
+  requests_by_session?: SessionUsageMetric[]
   failures_by_error_type: Array<{ error_type: string; failure_count: number }>
   slowest_request_categories: Array<UsageMetric & { category: string }>
   requests_with_unavailable_token_usage: Array<{
