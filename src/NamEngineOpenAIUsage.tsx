@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   Bot,
@@ -17,7 +17,16 @@ import {
   Zap,
 } from 'lucide-react'
 
-import { fetchUsageReport, TelemetryError, type SessionUsageMetric, type UsageMetric, type UsageReport } from './telemetryApi'
+import {
+  fetchUsageReport,
+  TelemetryError,
+  type SessionSort,
+  type SessionSortKey,
+  type SessionUsageMetric,
+  type UsageExceptionReport,
+  type UsageMetric,
+  type UsageReport,
+} from './telemetryApi'
 import {
   beginGoogleSignIn,
   completeGoogleSignIn,
@@ -38,12 +47,20 @@ const MODEL_PRICES_PER_MILLION: Record<string, ModelPrice> = {
   'gpt-4o-mini': { input: 0.15, output: 0.6 },
 }
 
+const REPORTING_WINDOWS = [
+  { days: 1, label: 'Last 24 hours' },
+  { days: 7, label: 'Last 7 days' },
+  { days: 30, label: 'Last 30 days' },
+  { days: 90, label: 'Last 90 days' },
+]
+
 export default function NamEngineOpenAIUsage() {
   const [session, setSession] = useState<TelemetrySession | null>(null)
   const [report, setReport] = useState<UsageReport | null>(null)
   const [view, setView] = useState<ViewState>('checking')
   const [message, setMessage] = useState('')
-  const [days, setDays] = useState(30)
+  const [days, setDays] = useState(1)
+  const [sessionSort, setSessionSort] = useState<SessionSort>({ key: 'timestamp', direction: 'desc' })
 
   useEffect(() => {
     let active = true
@@ -65,7 +82,7 @@ export default function NamEngineOpenAIUsage() {
     setView('loading')
     setMessage('')
     try {
-      const nextReport = await fetchUsageReport(activeSession, days)
+      const nextReport = await fetchUsageReport(activeSession, days, sessionSort)
       setReport(nextReport)
       setView(nextReport.summary.request_count ? 'ready' : 'empty')
     } catch (error) {
@@ -79,7 +96,7 @@ export default function NamEngineOpenAIUsage() {
           : 'NamEngine telemetry is temporarily unavailable.')
       }
     }
-  }, [days])
+  }, [days, sessionSort])
 
   useEffect(() => {
     if (session) void loadReport(session)
@@ -97,6 +114,7 @@ export default function NamEngineOpenAIUsage() {
   const totalCost = report ? estimateReportCost(report.requests_by_model) : 0
   const averageCost = report?.summary.request_count ? totalCost / report.summary.request_count : 0
   const projectedMonthlyCost = days ? totalCost / days * 30 : 0
+  const reportingLabel = REPORTING_WINDOWS.find((item) => item.days === days)?.label ?? `${days} days`
 
   return (
     <div className="app-shell telemetry-shell">
@@ -137,7 +155,7 @@ export default function NamEngineOpenAIUsage() {
           <>
             <TelemetryControls days={days} setDays={setDays} session={session} loadReport={loadReport} />
             <section className="telemetry-metrics" aria-label="OpenAI usage summary">
-              <UsageCard icon={<DollarSign size={20} />} label={`Estimated cost (${days} days)`} value={formatCurrency(totalCost)} />
+              <UsageCard icon={<DollarSign size={20} />} label={`Estimated cost (${reportingLabel})`} value={formatCurrency(totalCost)} />
               <UsageCard icon={<DollarSign size={20} />} label="Average cost / request" value={formatCurrency(averageCost, 4)} />
               <UsageCard icon={<DollarSign size={20} />} label="Projected monthly cost" value={formatCurrency(projectedMonthlyCost)} />
               <UsageCard icon={<Zap size={20} />} label="Total requests" value={formatNumber(report.summary.request_count)} />
@@ -149,8 +167,8 @@ export default function NamEngineOpenAIUsage() {
 
             <section className="telemetry-grid">
               <ModelCostTable rows={report.requests_by_model} />
-              <SessionCostTable rows={report.requests_by_session ?? []} />
-              <UsageBreakdown title="Usage by request type" labelKey="request_type" rows={report.requests_by_request_type} />
+              <SessionCostTable rows={report.requests_by_session ?? []} sort={sessionSort} setSort={setSessionSort} />
+              <UsageExceptionsPanel report={report.usage_exceptions} />
               <DailyUsage rows={report.requests_by_day} />
             </section>
           </>
@@ -161,7 +179,7 @@ export default function NamEngineOpenAIUsage() {
 }
 
 function TelemetryControls({ days, setDays, session, loadReport }: { days: number; setDays: (value: number) => void; session: TelemetrySession | null; loadReport: (session: TelemetrySession) => Promise<void> }) {
-  return <div className="telemetry-controls"><label><CalendarDays size={17} /><span>Reporting window</span><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option></select></label>{session && <button className="secondary-button" onClick={() => void loadReport(session)}><RefreshCw size={16} /> Refresh</button>}</div>
+  return <div className="telemetry-controls"><label><CalendarDays size={17} /><span>Reporting window</span><select value={days} onChange={(event) => setDays(Number(event.target.value))}>{REPORTING_WINDOWS.map((window) => <option key={window.days} value={window.days}>{window.label}</option>)}</select></label>{session && <button className="secondary-button" onClick={() => void loadReport(session)}><RefreshCw size={16} /> Refresh</button>}</div>
 }
 
 function UsageCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
@@ -172,13 +190,35 @@ function ModelCostTable({ rows }: { rows: Array<UsageMetric & { model: string }>
   return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Cost</p><h2>Estimated cost by model</h2></div></div><div className="usage-table-wrap"><table className="usage-table"><thead><tr><th>Model</th><th>Requests</th><th>Input tokens</th><th>Output tokens</th><th>Estimated cost</th></tr></thead><tbody>{rows.map((row) => <tr key={row.model}><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.input_tokens)}</td><td>{formatNumber(row.output_tokens)}</td><td>{formatCurrency(estimateModelCost(row))}</td></tr>)}</tbody></table></div></article>
 }
 
-function SessionCostTable({ rows }: { rows: SessionUsageMetric[] }) {
+function SessionCostTable({ rows, sort, setSort }: { rows: SessionUsageMetric[]; sort: SessionSort; setSort: (value: SessionSort) => void }) {
   const visibleRows = rows.slice(0, 25)
-  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{visibleRows.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{formatSessionLabel(row)}</p><dl><div><dt>Time</dt><dd>{formatTimestamp(row.timestamp, row.date)}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Raw ID</dt><dd title={row.session_id}>{shortSessionId(row.session_id)}</dd></div></dl></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>Session</th><th>Time</th><th>Model</th><th>Requests</th><th>Tokens</th><th>Names</th><th>Avg. latency</th><th>Estimated cost</th></tr></thead><tbody>{visibleRows.map((row) => <tr key={row.session_id}><td><span className="session-id-cell" title={row.session_id}>{formatSessionLabel(row)}</span></td><td>{formatTimestamp(row.timestamp, row.date)}</td><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.total_tokens)}</td><td>{formatNumber(row.generated_name_count)}</td><td>{formatLatency(row.average_latency_ms)}</td><td>{formatCurrency(row.estimated_spend_usd, 4)}</td></tr>)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
+  const sortedRows = useMemo(() => sortSessionRows(visibleRows, sort), [visibleRows, sort])
+  const sortedCards = sortSessionRows(visibleRows, sort)
+  const sortHeader = (key: SessionSortKey, label: string) => {
+    const active = sort.key === key
+    const nextDirection = active && sort.direction === 'desc' ? 'asc' : 'desc'
+    return <button className={`sort-header${active ? ' active' : ''}`} type="button" onClick={() => setSort({ key, direction: nextDirection })}>{label}<span>{active ? (sort.direction === 'desc' ? '↓' : '↑') : '↕'}</span></button>
+  }
+  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{sortedCards.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{formatSessionLabel(row)}</p><dl><div><dt>Time</dt><dd>{formatTimestamp(row.timestamp, row.date)}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Raw ID</dt><dd title={row.session_id}>{shortSessionId(row.session_id)}</dd></div></dl></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>{sortHeader('session_id', 'Session')}</th><th>{sortHeader('timestamp', 'Time')}</th><th>{sortHeader('model', 'Model')}</th><th>{sortHeader('request_count', 'Requests')}</th><th>{sortHeader('total_tokens', 'Tokens')}</th><th>{sortHeader('generated_name_count', 'Names')}</th><th>{sortHeader('average_latency_ms', 'Avg. latency')}</th><th>{sortHeader('estimated_spend_usd', 'Estimated cost')}</th></tr></thead><tbody>{sortedRows.map((row) => <tr key={row.session_id}><td><span className="session-id-cell" title={row.session_id}>{formatSessionLabel(row)}</span></td><td>{formatTimestamp(row.timestamp, row.date)}</td><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.total_tokens)}</td><td>{formatNumber(row.generated_name_count)}</td><td>{formatLatency(row.average_latency_ms)}</td><td>{formatCurrency(row.estimated_spend_usd, 4)}</td></tr>)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
 }
 
-function UsageBreakdown({ title, rows, labelKey }: { title: string; rows: Array<UsageMetric & Record<string, string | number>>; labelKey: string }) {
-  return <article className="telemetry-panel"><div className="panel-heading"><div><p className="eyebrow">Distribution</p><h2>{title}</h2></div></div><div className="compact-rows">{rows.map((row) => <div key={String(row[labelKey])}><span>{String(row[labelKey])}<small>{formatNumber(row.total_tokens)} tokens</small></span><strong>{formatNumber(row.request_count)}</strong></div>)}</div></article>
+function UsageExceptionsPanel({ report }: { report?: UsageExceptionReport }) {
+  if (!report) return <article className="telemetry-panel"><div className="panel-heading"><div><p className="eyebrow">Exceptions</p><h2>Usage exceptions</h2></div></div><p className="empty-panel-copy">Deploy the latest NamEngine telemetry API to see usage exceptions.</p></article>
+  const summary = report.summary
+  const rows = [
+    { label: 'Unexpected request types', value: summary.unexpected_request_type_count },
+    { label: 'Pipeline anomaly sessions', value: summary.pipeline_anomaly_session_count },
+    { label: 'Failures', value: summary.failure_count },
+    { label: 'Missing token usage', value: summary.requests_missing_token_usage },
+  ]
+  return <article className="telemetry-panel"><div className="panel-heading"><div><p className="eyebrow">Exceptions</p><h2>Usage exceptions</h2></div><span>{formatNumber(summary.exception_request_count)} flagged</span></div><div className="compact-rows exception-rows">{rows.map((row) => <div key={row.label}><span>{row.label}<small>{exceptionDetail(row.label, report)}</small></span><strong>{formatNumber(row.value)}</strong></div>)}</div></article>
+}
+
+function exceptionDetail(label: string, report: UsageExceptionReport): string {
+  if (label === 'Unexpected request types') return report.unexpected_request_types[0]?.request_type ?? 'Normal pipeline only'
+  if (label === 'Pipeline anomaly sessions') return report.sessions_with_pipeline_anomalies[0]?.session_id ?? 'No anomaly sessions'
+  if (label === 'Failures') return report.failures_by_error_type[0]?.error_type ?? 'No failures'
+  return report.requests_with_unavailable_token_usage[0]?.request_type ?? 'Token usage available'
 }
 
 function DailyUsage({ rows }: { rows: Array<UsageMetric & { date: string }> }) {
@@ -187,6 +227,22 @@ function DailyUsage({ rows }: { rows: Array<UsageMetric & { date: string }> }) {
 
 function StatePanel({ icon, title, copy, action }: { icon: React.ReactNode; title: string; copy: string; action?: React.ReactNode }) {
   return <section className="telemetry-state"><div className="telemetry-state-icon">{icon}</div><h2>{title}</h2><p>{copy}</p>{action}</section>
+}
+
+function sortSessionRows(rows: SessionUsageMetric[], sort: SessionSort): SessionUsageMetric[] {
+  return [...rows].sort((first, second) => {
+    const left = sessionSortValue(first, sort.key)
+    const right = sessionSortValue(second, sort.key)
+    const result = typeof left === 'number' && typeof right === 'number'
+      ? left - right
+      : String(left).localeCompare(String(right))
+    return sort.direction === 'asc' ? result : -result
+  })
+}
+
+function sessionSortValue(row: SessionUsageMetric, key: SessionSortKey): string | number {
+  if (key === 'timestamp') return Date.parse(row.timestamp || `${row.date}T00:00:00Z`) || 0
+  return row[key] ?? ''
 }
 
 function estimateReportCost(rows: Array<UsageMetric & { model: string }>): number {

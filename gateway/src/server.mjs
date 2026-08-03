@@ -4,7 +4,16 @@ import { createRemoteJWKSet, jwtVerify } from 'jose'
 
 const GOOGLE_JWKS_URL = new URL('https://www.googleapis.com/oauth2/v3/certs')
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
-const QUERY_ALLOWLIST = new Set(['start', 'end', 'request_type', 'model', 'success'])
+const QUERY_ALLOWLIST = new Set([
+  'start',
+  'end',
+  'request_type',
+  'model',
+  'success',
+  'reporting_window',
+  'session_sort',
+  'session_sort_direction',
+])
 const DEFAULT_TIMEOUT_MS = 5_000
 const DEFAULT_MAX_RESPONSE_BYTES = 512 * 1024
 

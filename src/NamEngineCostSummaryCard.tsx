@@ -26,7 +26,7 @@ export default function NamEngineCostSummaryCard() {
         return
       }
       try {
-        const report = await fetchUsageReport(session, 30)
+        const report = await fetchUsageReport(session, 1, { key: 'timestamp', direction: 'desc' })
         if (!active) return
         const totalSpend = reportCost(report)
         setSpend(totalSpend)
@@ -57,13 +57,13 @@ export default function NamEngineCostSummaryCard() {
 
 function cardContent(state: CardState, spend: number, requestCount: number) {
   if (state === 'loading') {
-    return { icon: <RefreshCw className="spin" size={20} />, label: 'NamEngine AI spend', value: 'Loading', note: 'Checking last 30 days' }
+    return { icon: <RefreshCw className="spin" size={20} />, label: 'NamEngine AI spend', value: 'Loading', note: 'Checking last 24 hours' }
   }
   if (state === 'ready') {
-    return { icon: <Coins size={20} />, label: 'NamEngine AI spend', value: formatCurrency(spend), note: `${formatNumber(requestCount)} requests · last 30 days` }
+    return { icon: <Coins size={20} />, label: 'NamEngine AI spend', value: formatCurrency(spend), note: `${formatNumber(requestCount)} requests · last 24 hours` }
   }
   if (state === 'empty') {
-    return { icon: <Coins size={20} />, label: 'NamEngine AI spend', value: formatCurrency(0), note: 'No usage in last 30 days' }
+    return { icon: <Coins size={20} />, label: 'NamEngine AI spend', value: formatCurrency(0), note: 'No usage in last 24 hours' }
   }
   if (state === 'signed_out') {
     return { icon: <LogIn size={20} />, label: 'NamEngine AI spend', value: 'Sign in', note: 'Tap to view cost' }
