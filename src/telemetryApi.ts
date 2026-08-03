@@ -18,6 +18,7 @@ export type UsageMetric = {
 
 export type SessionUsageMetric = UsageMetric & {
   session_id: string
+  timestamp?: string
   date: string
   vertical: string
   model: string

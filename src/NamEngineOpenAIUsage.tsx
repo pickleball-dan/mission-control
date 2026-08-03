@@ -174,7 +174,7 @@ function ModelCostTable({ rows }: { rows: Array<UsageMetric & { model: string }>
 
 function SessionCostTable({ rows }: { rows: SessionUsageMetric[] }) {
   const visibleRows = rows.slice(0, 25)
-  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{visibleRows.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{shortSessionId(row.session_id)}</p><dl><div><dt>Vertical</dt><dd>{row.vertical}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Date</dt><dd>{formatDate(row.date)}</dd></div></dl></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>Session</th><th>Date</th><th>Vertical</th><th>Model</th><th>Requests</th><th>Tokens</th><th>Names</th><th>Avg. latency</th><th>Estimated cost</th></tr></thead><tbody>{visibleRows.map((row) => <tr key={row.session_id}><td><span className="session-id-cell" title={row.session_id}>{shortSessionId(row.session_id)}</span></td><td>{formatDate(row.date)}</td><td>{row.vertical}</td><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.total_tokens)}</td><td>{formatNumber(row.generated_name_count)}</td><td>{formatLatency(row.average_latency_ms)}</td><td>{formatCurrency(row.estimated_spend_usd, 4)}</td></tr>)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
+  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{visibleRows.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{formatSessionLabel(row)}</p><dl><div><dt>Time</dt><dd>{formatTimestamp(row.timestamp, row.date)}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Raw ID</dt><dd title={row.session_id}>{shortSessionId(row.session_id)}</dd></div></dl></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>Session</th><th>Time</th><th>Model</th><th>Requests</th><th>Tokens</th><th>Names</th><th>Avg. latency</th><th>Estimated cost</th></tr></thead><tbody>{visibleRows.map((row) => <tr key={row.session_id}><td><span className="session-id-cell" title={row.session_id}>{formatSessionLabel(row)}</span></td><td>{formatTimestamp(row.timestamp, row.date)}</td><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.total_tokens)}</td><td>{formatNumber(row.generated_name_count)}</td><td>{formatLatency(row.average_latency_ms)}</td><td>{formatCurrency(row.estimated_spend_usd, 4)}</td></tr>)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
 }
 
 function UsageBreakdown({ title, rows, labelKey }: { title: string; rows: Array<UsageMetric & Record<string, string | number>>; labelKey: string }) {
@@ -222,13 +222,42 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
 }
 
+function formatTimestamp(timestamp: string | undefined, fallbackDate: string): string {
+  const value = timestamp ? new Date(timestamp) : new Date(`${fallbackDate}T00:00:00Z`)
+  if (Number.isNaN(value.getTime())) return formatDate(fallbackDate)
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(value)
+}
+
+function formatSessionLabel(row: SessionUsageMetric): string {
+  const vertical = titleCase(row.vertical || firstSessionSegment(row.session_id) || 'session')
+  const rounds = sessionRounds(row.session_id)
+  return rounds ? `${vertical} · ${rounds}` : `${vertical} · First list`
+}
+
+function firstSessionSegment(value: string): string {
+  return value.split('-')[0] || ''
+}
+
+function sessionRounds(value: string): string {
+  const matches = [...value.matchAll(/_r(\d+)/g)].map((match) => Number(match[1])).filter(Boolean)
+  if (!matches.length) return ''
+  const first = Math.min(...matches)
+  const last = Math.max(...matches)
+  if (first === last) return `Round ${first}`
+  return `Rounds ${first}–${last}`
+}
+
+function titleCase(value: string): string {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value
+}
+
 function shortSessionId(value: string): string {
   if (value.length <= 20) return value
   return `${value.slice(0, 12)}…${value.slice(-5)}`
-}
-
-function shortRequestTypes(values: string[]): string {
-  const label = values.slice(0, 2).join(', ')
-  if (values.length > 2) return `${label} +${values.length - 2}`
-  return label || 'generation'
 }
