@@ -337,12 +337,20 @@ function firstSessionSegment(value: string): string {
 }
 
 function sessionRounds(value: string): string {
-  const matches = [...value.matchAll(/_r(\d+)/g)].map((match) => Number(match[1])).filter(Boolean)
+  const matches = [...value.matchAll(/(?:^|[-_])r(\d+)(?=$|[-_])/g)].map((match) => Number(match[1])).filter(Boolean)
   if (!matches.length) return ''
-  const first = Math.min(...matches)
-  const last = Math.max(...matches)
-  if (first === last) return `Round ${first}`
-  return `Rounds ${first}–${last}`
+  const uniqueRounds = [...new Set(matches)].sort((left, right) => left - right)
+  if (uniqueRounds.length === 1) return `${ordinalListLabel(uniqueRounds[0])} list`
+  return `${uniqueRounds.map(ordinalListLabel).join('-')} lists`
+}
+
+function ordinalListLabel(value: number): string {
+  if (value === 1) return 'First'
+  if (value === 2) return 'Second'
+  if (value === 3) return 'Third'
+  if (value === 4) return 'Fourth'
+  if (value === 5) return 'Fifth'
+  return `List ${value}`
 }
 
 function titleCase(value: string): string {
