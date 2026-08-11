@@ -23,6 +23,7 @@ import {
   type SessionSort,
   type SessionSortKey,
   type SessionUsageMetric,
+  type StageUsageMetric,
   type UsageExceptionReport,
   type UsageMetric,
   type UsageReport,
@@ -199,7 +200,35 @@ function SessionCostTable({ rows, sort, setSort }: { rows: SessionUsageMetric[];
     const nextDirection = active && sort.direction === 'desc' ? 'asc' : 'desc'
     return <button className={`sort-header${active ? ' active' : ''}`} type="button" onClick={() => setSort({ key, direction: nextDirection })}>{label}<span>{active ? (sort.direction === 'desc' ? '↓' : '↑') : '↕'}</span></button>
   }
-  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{sortedCards.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{formatSessionLabel(row)}</p><dl><div><dt>Time</dt><dd>{formatTimestamp(row.timestamp, row.date)}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Raw ID</dt><dd title={row.session_id}>{shortSessionId(row.session_id)}</dd></div></dl></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>{sortHeader('session_id', 'Session')}</th><th>{sortHeader('timestamp', 'Time')}</th><th>{sortHeader('model', 'Model')}</th><th>{sortHeader('request_count', 'Requests')}</th><th>{sortHeader('total_tokens', 'Tokens')}</th><th>{sortHeader('generated_name_count', 'Names')}</th><th>{sortHeader('average_latency_ms', 'Avg. latency')}</th><th>{sortHeader('estimated_spend_usd', 'Estimated cost')}</th></tr></thead><tbody>{sortedRows.map((row) => <tr key={row.session_id}><td><span className="session-id-cell" title={row.session_id}>{formatSessionLabel(row)}</span></td><td>{formatTimestamp(row.timestamp, row.date)}</td><td>{row.model}</td><td>{formatNumber(row.request_count)}</td><td>{formatNumber(row.total_tokens)}</td><td>{formatNumber(row.generated_name_count)}</td><td>{formatLatency(row.average_latency_ms)}</td><td>{formatCurrency(row.estimated_spend_usd, 4)}</td></tr>)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
+  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{sortedCards.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{formatSessionLabel(row)}</p><dl><div><dt>Time</dt><dd>{formatTimestamp(row.timestamp, row.date)}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Raw ID</dt><dd title={row.session_id}>{shortSessionId(row.session_id)}</dd></div></dl><StageBreakdown rows={row.stage_breakdown ?? []} compact /></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>{sortHeader('session_id', 'Session')}</th><th>{sortHeader('timestamp', 'Time')}</th><th>{sortHeader('model', 'Model')}</th><th>{sortHeader('request_count', 'Requests')}</th><th>{sortHeader('total_tokens', 'Tokens')}</th><th>{sortHeader('generated_name_count', 'Names')}</th><th>{sortHeader('average_latency_ms', 'Avg. latency')}</th><th>{sortHeader('estimated_spend_usd', 'Estimated cost')}</th></tr></thead><tbody>{sortedRows.map((row) => <SessionUsageRows key={row.session_id} row={row} />)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
+}
+
+function SessionUsageRows({ row }: { row: SessionUsageMetric }) {
+  const stages = row.stage_breakdown ?? []
+  return <>
+    <tr className="session-summary-row">
+      <td><span className="session-id-cell" title={row.session_id}>{formatSessionLabel(row)}</span></td>
+      <td>{formatTimestamp(row.timestamp, row.date)}</td>
+      <td>{row.model}</td>
+      <td>{formatNumber(row.request_count)}</td>
+      <td>{formatNumber(row.total_tokens)}</td>
+      <td>{formatNumber(row.generated_name_count)}</td>
+      <td>{formatLatency(row.average_latency_ms)}</td>
+      <td>{formatCurrency(row.estimated_spend_usd, 4)}</td>
+    </tr>
+    {stages.length > 0 && <tr className="stage-breakdown-row"><td colSpan={8}><StageBreakdown rows={stages} /></td></tr>}
+  </>
+}
+
+function StageBreakdown({ rows, compact = false }: { rows: StageUsageMetric[]; compact?: boolean }) {
+  if (!rows.length) return compact ? null : <p className="empty-stage-breakdown">Stage breakdown unavailable for this session.</p>
+  return <div className={compact ? 'stage-breakdown stage-breakdown-compact' : 'stage-breakdown'} aria-label="OpenAI call stage breakdown">
+    {rows.map((row) => <div className="stage-breakdown-item" key={row.stage}>
+      <span>{formatStageLabel(row.stage)}</span>
+      <strong>{formatLatency(row.average_latency_ms)}</strong>
+      <small>{formatNumber(row.total_tokens)} tokens · {formatCurrency(row.estimated_spend_usd, 4)}</small>
+    </div>)}
+  </div>
 }
 
 function UsageExceptionsPanel({ report }: { report?: UsageExceptionReport }) {
@@ -294,6 +323,13 @@ function formatSessionLabel(row: SessionUsageMetric): string {
   const vertical = titleCase(row.vertical || firstSessionSegment(row.session_id) || 'session')
   const rounds = sessionRounds(row.session_id)
   return rounds ? `${vertical} · ${rounds}` : `${vertical} · First list`
+}
+
+function formatStageLabel(value: string): string {
+  if (value === 'taste_interpreter_v1') return 'Taste interpreter'
+  if (value === 'candidate_generator_v1') return 'Candidate generator'
+  if (value === 'critic_ranker_finalizer_v1') return 'Critic / finalizer'
+  return value.replace(/_v\d+$/, '').split('_').map(titleCase).join(' ')
 }
 
 function firstSessionSegment(value: string): string {

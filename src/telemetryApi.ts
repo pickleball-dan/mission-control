@@ -23,6 +23,18 @@ export type SessionUsageMetric = UsageMetric & {
   vertical: string
   model: string
   request_types: string[]
+  stage_breakdown?: StageUsageMetric[]
+}
+
+export type StageUsageMetric = {
+  stage: string
+  request_count: number
+  average_latency_ms: number
+  maximum_latency_ms: number
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+  estimated_spend_usd: number
 }
 
 export type UsageExceptionReport = {
