@@ -89,15 +89,17 @@ export default function NamEngineGenerationQA() {
     setView('signed_out')
   }
 
-  const runQA = async (mode: GenerationQARunMode) => {
+  const runQA = async (mode: GenerationQARunMode, useAi = false) => {
     if (!session || runState === 'running') return
+    if (useAi && !window.confirm('Run a FULL OpenAI Generation QA now? This will call OpenAI for every full-run scenario and may take several minutes.')) return
+    const runLabel = `${mode === 'fast' ? 'Fast' : 'Full'} ${useAi ? 'OpenAI' : 'fallback'}`
     setRunState('running')
-    setRunMessage(`${mode === 'fast' ? 'Fast' : 'Full'} fallback run started…`)
+    setRunMessage(`${runLabel} run started…`)
     try {
-      const response = await runGenerationQA(session, { mode })
+      const response = await runGenerationQA(session, { mode, useAi, confirmAi: useAi })
       setStatus({ available: true, summary: response.summary, summary_path: response.summary.summary_path, report_path: response.summary.report_path })
       setView('ready')
-      setRunMessage(`${mode === 'fast' ? 'Fast' : 'Full'} fallback run completed.`)
+      setRunMessage(`${runLabel} run completed.`)
     } catch (error) {
       setRunMessage(error instanceof TelemetryError && error.kind === 'timeout'
         ? 'Generation QA timed out before Mission Control received a response.'
@@ -125,7 +127,7 @@ export default function NamEngineGenerationQA() {
           <a className="nav-item nav-link" href="/namengine/openai-usage"><Activity size={18} /> OpenAI usage</a>
           <a className="nav-item nav-link active" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
         </nav>
-        <div className="sidebar-note"><Sparkles size={18} /><div><strong>Launch discipline</strong><span>Fallback runs are local and cost-free. AI runs stay API-only.</span></div></div>
+        <div className="sidebar-note"><Sparkles size={18} /><div><strong>Provider QA</strong><span>OpenAI first. Claude, Gemini, and others can plug into this comparison lane next.</span></div></div>
       </aside>
 
       <main>
@@ -153,13 +155,14 @@ export default function NamEngineGenerationQA() {
           <>
             <div className="telemetry-controls generation-qa-controls">
               <div>
-                <strong>Fallback simulator controls</strong>
-                <span>These runs do not call OpenAI.</span>
+                <strong>Generation QA controls</strong>
+                <span>Fallback runs are local. Full OpenAI runs call the live provider after confirmation.</span>
               </div>
               <div className="telemetry-actions">
                 {session && <button className="secondary-button" disabled={runState === 'running'} onClick={() => void loadStatus(session)}><RefreshCw size={16} /> Refresh</button>}
                 <button className="primary-button" disabled={runState === 'running'} onClick={() => void runQA('fast')}><PlayCircle size={18} /> Run fast</button>
                 <button className="secondary-button" disabled={runState === 'running'} onClick={() => void runQA('full')}><PlayCircle size={17} /> Run full</button>
+                <button className="danger-button generation-qa-ai-button" disabled={runState === 'running'} onClick={() => void runQA('full', true)}><PlayCircle size={17} /> Run full OpenAI</button>
               </div>
             </div>
 
@@ -190,8 +193,8 @@ export default function NamEngineGenerationQA() {
                   </article>
 
                   <article className="telemetry-panel telemetry-panel-wide">
-                    <div className="panel-heading"><div><p className="eyebrow">AI safety</p><h2>Live AI runs stay explicit</h2></div><XCircle size={19} /></div>
-                    <p className="empty-panel-copy">Mission Control only exposes fallback simulator buttons. OpenAI-backed runs still require the protected API confirmation payload so we do not accidentally spend tokens from a dashboard click.</p>
+                    <div className="panel-heading"><div><p className="eyebrow">Provider quality</p><h2>OpenAI full runs are available with confirmation</h2></div><XCircle size={19} /></div>
+                    <p className="empty-panel-copy">Use Run full OpenAI when you want the quality check to exercise the live OpenAI naming pipeline. This is the first provider lane for future OpenAI vs Claude vs Gemini comparisons.</p>
                   </article>
                 </section>
               </>

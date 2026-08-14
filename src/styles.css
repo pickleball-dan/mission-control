@@ -136,6 +136,7 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .generation-qa-detail { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: #fffaf2; display: flex; flex-direction: column; gap: 5px; }
 .generation-qa-detail span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .generation-qa-detail strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.generation-qa-ai-button { width: auto; padding: 10px 14px; }
 
 .telemetry-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 18px; }
 .usage-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; box-shadow: 0 10px 30px rgba(30,47,41,.035); }
@@ -223,7 +224,7 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
   .telemetry-controls { align-items: stretch; flex-direction: column; }
   .telemetry-controls label { justify-content: space-between; }
   .telemetry-controls .secondary-button { width: 100%; }
-  .generation-qa-controls .primary-button, .generation-qa-controls .telemetry-actions { width: 100%; }
+  .generation-qa-controls .primary-button, .generation-qa-controls .telemetry-actions, .generation-qa-ai-button { width: 100%; }
   .generation-qa-detail-grid { grid-template-columns: 1fr; }
   .telemetry-actions { align-items: stretch; flex-direction: column; }
   .usage-bar-row { grid-template-columns: minmax(100px, 1fr) 1fr 35px; gap: 8px; }

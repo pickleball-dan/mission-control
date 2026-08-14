@@ -201,7 +201,10 @@ export function createGatewayServer({
         const body = await readJsonBody(request, 1024)
         const mode = boundedString(body.mode, 'mode', 16)
         if (mode !== 'fast' && mode !== 'full') throw new RequestError(400, 'invalid_request')
-        const payload = await runGenerationQA({ mode }, config, fetchImpl)
+        const useAi = body.use_ai === true
+        const confirmAi = body.confirm_ai === true
+        if (useAi && !confirmAi) throw new RequestError(400, 'invalid_request')
+        const payload = await runGenerationQA({ mode, use_ai: useAi, confirm_ai: confirmAi }, config, fetchImpl)
         return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
       }
 

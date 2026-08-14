@@ -177,18 +177,18 @@ export async function fetchGenerationQAStatus(session: TelemetrySession): Promis
   return fetchGatewayJson<GenerationQAStatus>(new URL('/api/namengine/generation-qa', config.gatewayUrl), session, 8_000, isGenerationQAStatus)
 }
 
-export async function runGenerationQA(session: TelemetrySession, options: { mode: GenerationQARunMode }): Promise<GenerationQARunResponse> {
+export async function runGenerationQA(session: TelemetrySession, options: { mode: GenerationQARunMode; useAi?: boolean; confirmAi?: boolean }): Promise<GenerationQARunResponse> {
   const config = telemetryPublicConfig()
   if (!config) throw new TelemetryError('configuration')
   return fetchGatewayJson<GenerationQARunResponse>(
     new URL('/api/namengine/generation-qa/run', config.gatewayUrl),
     session,
-    options.mode === 'full' ? 120_000 : 60_000,
+    options.useAi ? 180_000 : options.mode === 'full' ? 120_000 : 60_000,
     isGenerationQARunResponse,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: options.mode }),
+      body: JSON.stringify({ mode: options.mode, use_ai: Boolean(options.useAi), confirm_ai: Boolean(options.confirmAi) }),
     },
   )
 }
