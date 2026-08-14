@@ -95,6 +95,38 @@ export type SessionSort = { key: SessionSortKey; direction: 'asc' | 'desc' }
 
 export type TelemetryErrorKind = 'unauthorized' | 'unavailable' | 'timeout' | 'configuration'
 
+export type GenerationQASummary = {
+  schema_version?: string
+  run_id: string
+  mode?: string
+  scenario_count?: number
+  round_count?: number
+  passed_count?: number
+  anomaly_count?: number
+  critical_anomaly_count?: number
+  major_anomaly_count?: number
+  verticals?: string[]
+  artifact_dir?: string
+  report_path?: string
+  summary_path?: string
+}
+
+export type GenerationQAStatus = {
+  available: boolean
+  summary_path?: string
+  report_path?: string
+  summary: GenerationQASummary | null
+  error?: string
+  message?: string
+}
+
+export type GenerationQARunMode = 'fast' | 'full'
+
+export type GenerationQARunResponse = {
+  status: 'completed'
+  summary: GenerationQASummary
+}
+
 export class TelemetryError extends Error {
   constructor(public kind: TelemetryErrorKind) {
     super(kind)
@@ -137,4 +169,58 @@ export async function fetchUsageReport(session: TelemetrySession, days: number, 
   } finally {
     window.clearTimeout(timeout)
   }
+}
+
+export async function fetchGenerationQAStatus(session: TelemetrySession): Promise<GenerationQAStatus> {
+  const config = telemetryPublicConfig()
+  if (!config) throw new TelemetryError('configuration')
+  return fetchGatewayJson<GenerationQAStatus>(new URL('/api/namengine/generation-qa', config.gatewayUrl), session, 8_000, isGenerationQAStatus)
+}
+
+export async function runGenerationQA(session: TelemetrySession, options: { mode: GenerationQARunMode }): Promise<GenerationQARunResponse> {
+  const config = telemetryPublicConfig()
+  if (!config) throw new TelemetryError('configuration')
+  return fetchGatewayJson<GenerationQARunResponse>(
+    new URL('/api/namengine/generation-qa/run', config.gatewayUrl),
+    session,
+    options.mode === 'full' ? 120_000 : 60_000,
+    isGenerationQARunResponse,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: options.mode }),
+    },
+  )
+}
+
+async function fetchGatewayJson<T>(url: URL, session: TelemetrySession, timeoutMs: number, validate: (value: unknown) => value is T, init: RequestInit = {}): Promise<T> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers: { ...(init.headers || {}), Authorization: `Bearer ${session.idToken}` },
+      signal: controller.signal,
+    })
+    if (response.status === 401 || response.status === 403) throw new TelemetryError('unauthorized')
+    if (response.status === 504) throw new TelemetryError('timeout')
+    if (!response.ok) throw new TelemetryError('unavailable')
+    const payload = await response.json() as unknown
+    if (!validate(payload)) throw new TelemetryError('unavailable')
+    return payload
+  } catch (error) {
+    if (error instanceof TelemetryError) throw error
+    if (error instanceof DOMException && error.name === 'AbortError') throw new TelemetryError('timeout')
+    throw new TelemetryError('unavailable')
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
+function isGenerationQAStatus(value: unknown): value is GenerationQAStatus {
+  return Boolean(value && typeof value === 'object' && 'available' in value && 'summary' in value)
+}
+
+function isGenerationQARunResponse(value: unknown): value is GenerationQARunResponse {
+  return Boolean(value && typeof value === 'object' && (value as { status?: unknown }).status === 'completed' && typeof (value as { summary?: { run_id?: unknown } }).summary?.run_id === 'string')
 }

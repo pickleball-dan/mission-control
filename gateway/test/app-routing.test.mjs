@@ -25,11 +25,25 @@ test('/namengine/openai-usage keeps routing to the existing NamEngineOpenAIUsage
   assert.match(source, /path === '\/namengine\/openai-usage'[\s\S]*NamEngineOpenAIUsage/)
 })
 
+test('/namengine/generation-qa routes to the Generation QA component', async () => {
+  const source = await appSource()
+
+  assert.match(source, /path === '\/namengine\/generation-qa'/)
+  assert.match(source, /path === '\/namengine\/generation-qa'[\s\S]*NamEngineGenerationQA/)
+})
+
 test('Operating pulse navigation targets /operating-pulse', async () => {
   const source = await appSource()
 
   assert.match(source, /href="\/operating-pulse"/)
   assert.match(source, /> Operating pulse<\/a>/)
+})
+
+test('Generation QA navigation targets /namengine/generation-qa', async () => {
+  const source = await appSource()
+
+  assert.match(source, /href="\/namengine\/generation-qa"/)
+  assert.match(source, /> Generation QA<\/a>/)
 })
 
 test('/ falls back to the existing portfolio dashboard', async () => {

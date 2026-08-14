@@ -18,6 +18,7 @@ function config(overrides = {}) {
     missionControlOrigin: origin,
     callbackUrl: `${origin}/namengine/openai-usage`,
     upstreamTimeoutMs: 50,
+    generationQaTimeoutMs: 50,
     maxResponseBytes: 8 * 1024,
     rateLimitMax: 60,
     rateLimitWindowMs: 60_000,
@@ -155,6 +156,44 @@ test('proxies only allowlisted telemetry queries with the service secret', async
 
   const rejected = await fetch(`${base}/api/namengine/openai-usage?path=secret`, {
     headers: { Origin: origin, Authorization: 'Bearer valid-id-token' },
+  })
+  assert.equal(rejected.status, 400)
+})
+
+test('proxies Generation QA status and fallback runs with the service secret', async () => {
+  const upstreamRequests = []
+  const statusReport = { available: true, summary_path: '/var/data/latest/summary.json', report_path: '/var/data/latest/report.md', summary: { run_id: 'generation-qa-test' } }
+  const runReport = { status: 'completed', summary: { run_id: 'generation-qa-run', mode: 'fallback', scenario_count: 3 } }
+  const base = await start({
+    fetchImpl: async (url, options) => {
+      upstreamRequests.push({ url: String(url), options })
+      if (String(url).endsWith('/run')) return Response.json(runReport)
+      return Response.json(statusReport)
+    },
+  })
+
+  const headers = { Origin: origin, Authorization: 'Bearer valid-id-token' }
+  const status = await fetch(`${base}/api/namengine/generation-qa`, { headers })
+  const run = await fetch(`${base}/api/namengine/generation-qa/run`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'fast' }),
+  })
+
+  assert.equal(status.status, 200)
+  assert.deepEqual(await status.json(), statusReport)
+  assert.equal(run.status, 200)
+  assert.deepEqual(await run.json(), runReport)
+  assert.equal(upstreamRequests[0].url, 'https://namengine.example.com/api/internal/mission-control/generation-qa')
+  assert.equal(upstreamRequests[1].url, 'https://namengine.example.com/api/internal/mission-control/generation-qa/run')
+  assert.equal(upstreamRequests[0].options.headers.Authorization, 'Bearer service-secret')
+  assert.equal(upstreamRequests[1].options.headers.Authorization, 'Bearer service-secret')
+  assert.equal(upstreamRequests[1].options.body, JSON.stringify({ mode: 'fast' }))
+
+  const rejected = await fetch(`${base}/api/namengine/generation-qa/run`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'ai' }),
   })
   assert.equal(rejected.status, 400)
 })

@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import NamEngineCostSummaryCard from './NamEngineCostSummaryCard'
+import NamEngineGenerationQA from './NamEngineGenerationQA'
 import NamEngineOpenAIUsage from './NamEngineOpenAIUsage'
 
 type Status = 'Active' | 'Planning' | 'Paused' | 'Launched'
@@ -164,6 +165,7 @@ function PortfolioDashboard() {
           <button className="nav-item"><Target size={18} /> Projects</button>
           <button className="nav-item"><Rocket size={18} /> Launches</button>
           <a className="nav-item nav-link" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
+          <a className="nav-item nav-link" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
         </nav>
         <div className="sidebar-note">
           <Sparkles size={18} />
@@ -302,6 +304,7 @@ function PortfolioDashboard() {
 function App() {
   const path = window.location.pathname.replace(/\/$/, '') || '/'
   if (path === '/operating-pulse' || path === '/namengine/openai-usage') return <NamEngineOpenAIUsage />
+  if (path === '/namengine/generation-qa') return <NamEngineGenerationQA />
   return <PortfolioDashboard />
 }
 

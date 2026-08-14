@@ -63,6 +63,7 @@ export function loadConfig(environment = process.env) {
     missionControlOrigin,
     callbackUrl: `${missionControlOrigin}/namengine/openai-usage`,
     upstreamTimeoutMs: DEFAULT_TIMEOUT_MS,
+    generationQaTimeoutMs: 130_000,
     maxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES,
     rateLimitMax: 60,
     rateLimitWindowMs: 60_000,
@@ -182,6 +183,28 @@ export function createGatewayServer({
         return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
       }
 
+      if (request.method === 'GET' && url.pathname === '/api/namengine/generation-qa') {
+        const bearerToken = authorizationToken(request)
+        const identity = await tokenVerifier.verify(bearerToken)
+        if (!limiter.consume(`identity:${identity.sub}`)) throw new RequestError(429, 'rate_limited')
+        const payload = await fetchGenerationQAStatus(config, fetchImpl)
+        return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/namengine/generation-qa/run') {
+        const bearerToken = authorizationToken(request)
+        const identity = await tokenVerifier.verify(bearerToken)
+        if (!limiter.consume(`identity:${identity.sub}`)) throw new RequestError(429, 'rate_limited')
+        if (!String(request.headers['content-type'] || '').toLowerCase().startsWith('application/json')) {
+          throw new RequestError(415, 'unsupported_media_type')
+        }
+        const body = await readJsonBody(request, 1024)
+        const mode = boundedString(body.mode, 'mode', 16)
+        if (mode !== 'fast' && mode !== 'full') throw new RequestError(400, 'invalid_request')
+        const payload = await runGenerationQA({ mode }, config, fetchImpl)
+        return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
+      }
+
       throw new RequestError(404, 'not_found')
     } catch (error) {
       const status = error instanceof RequestError ? error.status : 500
@@ -244,6 +267,60 @@ async function fetchTelemetry(query, config, fetchImpl) {
   } catch {
     throw new RequestError(502, 'telemetry_unavailable')
   }
+}
+
+async function fetchGenerationQAStatus(config, fetchImpl) {
+  return fetchNamEngineJson(generationQAUrl(config), {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${config.telemetryToken}`,
+    },
+  }, config, fetchImpl, isGenerationQAStatus)
+}
+
+async function runGenerationQA(body, config, fetchImpl) {
+  return fetchNamEngineJson(generationQAUrl(config, '/run'), {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${config.telemetryToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }, { ...config, upstreamTimeoutMs: config.generationQaTimeoutMs }, fetchImpl, isGenerationQARunResponse)
+}
+
+async function fetchNamEngineJson(target, options, config, fetchImpl, validate) {
+  let upstream
+  try {
+    upstream = await fetchWithTimeout(target, options, config.upstreamTimeoutMs, fetchImpl)
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new RequestError(504, 'telemetry_timeout')
+    throw new RequestError(502, 'telemetry_unavailable')
+  }
+  if (!upstream.ok) {
+    if (upstream.status === 400) throw new RequestError(400, 'invalid_request')
+    throw new RequestError(502, 'telemetry_unavailable')
+  }
+  try {
+    const payload = await readLimitedJson(upstream, config.maxResponseBytes)
+    if (!validate(payload)) throw new Error('invalid payload')
+    return payload
+  } catch {
+    throw new RequestError(502, 'telemetry_unavailable')
+  }
+}
+
+function generationQAUrl(config, suffix = '') {
+  return new URL(`/api/internal/mission-control/generation-qa${suffix}`, config.telemetryUrl)
+}
+
+function isGenerationQAStatus(payload) {
+  return Boolean(payload && typeof payload === 'object' && typeof payload.available === 'boolean' && 'summary' in payload)
+}
+
+function isGenerationQARunResponse(payload) {
+  return Boolean(payload && typeof payload === 'object' && payload.status === 'completed' && payload.summary && typeof payload.summary.run_id === 'string')
 }
 
 function allowedQuery(searchParams) {

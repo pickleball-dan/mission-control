@@ -127,6 +127,15 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .telemetry-controls { min-height: 58px; margin-bottom: 18px; padding: 9px 11px 9px 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,253,249,.72); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .telemetry-controls label { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .telemetry-controls select { min-width: 145px; padding: 9px 11px; }
+.generation-qa-controls > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.generation-qa-controls strong { font: 800 13px 'Manrope'; }
+.generation-qa-controls span, .generation-qa-run-message { color: var(--muted); font-size: 12px; }
+.generation-qa-run-message { margin: -6px 0 16px; }
+.generation-qa-grid { margin-top: 18px; }
+.generation-qa-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 18px; }
+.generation-qa-detail { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: #fffaf2; display: flex; flex-direction: column; gap: 5px; }
+.generation-qa-detail span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.generation-qa-detail strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 
 .telemetry-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 18px; }
 .usage-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; box-shadow: 0 10px 30px rgba(30,47,41,.035); }
@@ -214,6 +223,8 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
   .telemetry-controls { align-items: stretch; flex-direction: column; }
   .telemetry-controls label { justify-content: space-between; }
   .telemetry-controls .secondary-button { width: 100%; }
+  .generation-qa-controls .primary-button, .generation-qa-controls .telemetry-actions { width: 100%; }
+  .generation-qa-detail-grid { grid-template-columns: 1fr; }
   .telemetry-actions { align-items: stretch; flex-direction: column; }
   .usage-bar-row { grid-template-columns: minmax(100px, 1fr) 1fr 35px; gap: 8px; }
   .session-cost-table-wrap { display: none; }

@@ -40,10 +40,14 @@ No database or external service is required for the first release.
 
 ## NamEngine OpenAI usage
 
-The `/namengine/openai-usage` route remains part of the static Vite application. It authenticates
-with Google using Authorization Code with PKCE and calls the dedicated telemetry gateway. The
-gateway validates the Google ID token and server-side email allowlist before making an
-authenticated server-to-server request to NamEngine. Only aggregate telemetry is returned.
+The `/namengine/openai-usage` and `/namengine/generation-qa` routes remain part of the static Vite application. They authenticate
+with Google using Authorization Code with PKCE and call the dedicated telemetry gateway. The
+gateway validates the Google ID token and server-side email allowlist before making
+authenticated server-to-server requests to NamEngine. Only aggregate telemetry is returned.
+
+Generation QA uses the same gateway and service token. Mission Control exposes only fallback
+simulator runs in the UI; OpenAI-backed simulator runs stay behind the explicit NamEngine API
+confirmation payload.
 
 Mission Control public build configuration:
 

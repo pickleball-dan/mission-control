@@ -2,6 +2,7 @@ const SESSION_KEY = 'mission-control-telemetry-session'
 const OAUTH_STATE_KEY = 'mission-control-oauth-state'
 const OAUTH_VERIFIER_KEY = 'mission-control-oauth-verifier'
 const OAUTH_NONCE_KEY = 'mission-control-oauth-nonce'
+const OAUTH_RETURN_PATH_KEY = 'mission-control-oauth-return-path'
 
 export type TelemetrySession = {
   idToken: string
@@ -44,6 +45,7 @@ export async function beginGoogleSignIn(): Promise<void> {
   sessionStorage.setItem(OAUTH_STATE_KEY, state)
   sessionStorage.setItem(OAUTH_VERIFIER_KEY, verifier)
   sessionStorage.setItem(OAUTH_NONCE_KEY, nonce)
+  sessionStorage.setItem(OAUTH_RETURN_PATH_KEY, `${window.location.pathname}${window.location.search}`)
 
   const authorizationUrl = new URL('/o/oauth2/v2/auth', config.issuer)
   authorizationUrl.search = new URLSearchParams({
@@ -79,6 +81,7 @@ async function completeGoogleSignInOnce(): Promise<TelemetrySession | null> {
   const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY)
   const verifier = sessionStorage.getItem(OAUTH_VERIFIER_KEY)
   const nonce = sessionStorage.getItem(OAUTH_NONCE_KEY)
+  const returnPath = sessionStorage.getItem(OAUTH_RETURN_PATH_KEY)
   clearOAuthTransaction()
   if (!config || !expectedState || !verifier || !nonce || returnedState !== expectedState) {
     throw new Error('The sign-in response could not be verified.')
@@ -110,6 +113,9 @@ async function completeGoogleSignInOnce(): Promise<TelemetrySession | null> {
   }
   const session = { idToken: payload.id_token, email: payload.email, expiresAt: payload.expires_at }
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  if (returnPath && returnPath.startsWith('/') && returnPath !== window.location.pathname) {
+    window.location.replace(returnPath)
+  }
   return session
 }
 
@@ -144,6 +150,7 @@ function clearOAuthTransaction(): void {
   sessionStorage.removeItem(OAUTH_STATE_KEY)
   sessionStorage.removeItem(OAUTH_VERIFIER_KEY)
   sessionStorage.removeItem(OAUTH_NONCE_KEY)
+  sessionStorage.removeItem(OAUTH_RETURN_PATH_KEY)
 }
 
 function cleanCallbackUrl(): void {
