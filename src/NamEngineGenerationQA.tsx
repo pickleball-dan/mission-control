@@ -91,7 +91,11 @@ export default function NamEngineGenerationQA() {
 
   const runQA = async (mode: GenerationQARunMode, useAi = false) => {
     if (!session || runState === 'running') return
-    if (useAi && !window.confirm('Run a FULL OpenAI Generation QA now? This will call OpenAI for every full-run scenario and may take several minutes.')) return
+    if (useAi) {
+      const modeLabel = mode === 'fast' ? 'FAST' : 'FULL'
+      const scope = mode === 'fast' ? 'the fast scenario set' : 'every full-run scenario'
+      if (!window.confirm(`Run a ${modeLabel} OpenAI Generation QA now? This will call OpenAI for ${scope} and may take several minutes.`)) return
+    }
     const runLabel = `${mode === 'fast' ? 'Fast' : 'Full'} ${useAi ? 'OpenAI' : 'fallback'}`
     setRunState('running')
     setRunMessage(`${runLabel} run started…`)
@@ -162,6 +166,7 @@ export default function NamEngineGenerationQA() {
                 {session && <button className="secondary-button" disabled={runState === 'running'} onClick={() => void loadStatus(session)}><RefreshCw size={16} /> Refresh</button>}
                 <button className="primary-button" disabled={runState === 'running'} onClick={() => void runQA('fast')}><PlayCircle size={18} /> Run fast</button>
                 <button className="secondary-button" disabled={runState === 'running'} onClick={() => void runQA('full')}><PlayCircle size={17} /> Run full</button>
+                <button className="secondary-button generation-qa-ai-button" disabled={runState === 'running'} onClick={() => void runQA('fast', true)}><PlayCircle size={17} /> Run fast OpenAI</button>
                 <button className="danger-button generation-qa-ai-button" disabled={runState === 'running'} onClick={() => void runQA('full', true)}><PlayCircle size={17} /> Run full OpenAI</button>
               </div>
             </div>
