@@ -12,6 +12,7 @@ import {
   LogOut,
   RefreshCw,
   Sparkles,
+  Target,
   TriangleAlert,
   XCircle,
   Zap,
@@ -124,7 +125,9 @@ export default function NamEngineOpenAIUsage() {
         <div className="brand-copy"><strong>Mission Control</strong><span>Portfolio OS</span></div>
         <nav>
           <a className="nav-item nav-link" href="/"><LayoutDashboard size={18} /> Overview</a>
-          <a className="nav-item nav-link active" href="/namengine/openai-usage"><Activity size={18} /> OpenAI usage</a>
+          <a className="nav-item nav-link" href="/#projects"><Target size={18} /> Projects</a>
+          <a className="nav-item nav-link active" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
+          <a className="nav-item nav-link" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
         </nav>
         <div className="sidebar-note"><Sparkles size={18} /><div><strong>Private telemetry</strong><span>Aggregates only. No customer data.</span></div></div>
       </aside>

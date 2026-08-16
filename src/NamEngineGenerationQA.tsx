@@ -6,6 +6,7 @@ import {
   Clock3,
   LayoutDashboard,
   LogIn,
+  Target,
   LogOut,
   PlayCircle,
   RefreshCw,
@@ -131,7 +132,8 @@ export default function NamEngineGenerationQA() {
         <div className="brand-copy"><strong>Mission Control</strong><span>Portfolio OS</span></div>
         <nav>
           <a className="nav-item nav-link" href="/"><LayoutDashboard size={18} /> Overview</a>
-          <a className="nav-item nav-link" href="/namengine/openai-usage"><Activity size={18} /> OpenAI usage</a>
+          <a className="nav-item nav-link" href="/#projects"><Target size={18} /> Projects</a>
+          <a className="nav-item nav-link" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
           <a className="nav-item nav-link active" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
         </nav>
         <div className="sidebar-note"><Sparkles size={18} /><div><strong>Provider QA</strong><span>OpenAI first. Claude, Gemini, and others can plug into this comparison lane next.</span></div></div>
@@ -167,10 +169,10 @@ export default function NamEngineGenerationQA() {
               </div>
               <div className="telemetry-actions">
                 {session && <button className="secondary-button" disabled={runState === 'running'} onClick={() => void loadStatus(session)}><RefreshCw size={16} /> Refresh</button>}
-                <button className={`primary-button${selectedRun === 'fast-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast')}><PlayCircle size={18} /> Run fast</button>
-                <button className={`secondary-button${selectedRun === 'full-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('full')}><PlayCircle size={17} /> Run full</button>
-                <button className={`secondary-button generation-qa-ai-button${selectedRun === 'fast-openai' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast', true)}><PlayCircle size={17} /> Run fast OpenAI</button>
-                <button className={`danger-button generation-qa-ai-button${selectedRun === 'full-openai' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('full', true)}><PlayCircle size={17} /> Run full OpenAI</button>
+                <button className={`secondary-button generation-qa-run-control${selectedRun === 'fast-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast')}><PlayCircle size={18} /> Run fast</button>
+                <button className={`secondary-button generation-qa-run-control${selectedRun === 'full-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('full')}><PlayCircle size={17} /> Run full</button>
+                <button className={`secondary-button generation-qa-ai-button generation-qa-run-control${selectedRun === 'fast-openai' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast', true)}><PlayCircle size={17} /> Run fast OpenAI</button>
+                <button className={`secondary-button generation-qa-ai-button generation-qa-run-control${selectedRun === 'full-openai' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('full', true)}><PlayCircle size={17} /> Run full OpenAI</button>
               </div>
             </div>
 

@@ -162,7 +162,7 @@ function PortfolioDashboard() {
         </div>
         <nav>
           <button className="nav-item active"><LayoutDashboard size={18} /> Overview</button>
-          <button className="nav-item"><Target size={18} /> Projects</button>
+          <a className="nav-item nav-link" href="#projects"><Target size={18} /> Projects</a>
           <a className="nav-item nav-link" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
           <a className="nav-item nav-link" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
         </nav>
@@ -195,22 +195,7 @@ function PortfolioDashboard() {
           <Metric icon={<Clock3 size={20} />} label="Open next actions" value={nextActions} note="Ready to execute" />
         </section>
 
-        <section className="focus-panel">
-          <div>
-            <p className="eyebrow">Executive focus</p>
-            <h2>Get Namengine Baby launch-ready.</h2>
-            <p>The shortest path to revenue is a reliable engine, a clear audit trail, and a repeatable launch test.</p>
-          </div>
-          <div className="focus-actions">
-            <span>72% ready</span>
-            <div className="progress-track"><div style={{ width: '72%' }} /></div>
-            <a href="https://namengine-platform-app.onrender.com" target="_blank" rel="noreferrer">
-              Open Namengine <ArrowUpRight size={16} />
-            </a>
-          </div>
-        </section>
-
-        <section className="workspace">
+        <section className="workspace" id="projects">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Portfolio</p>
