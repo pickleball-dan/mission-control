@@ -95,29 +95,75 @@ export type SessionSort = { key: SessionSortKey; direction: 'asc' | 'desc' }
 
 export type TelemetryErrorKind = 'unauthorized' | 'unavailable' | 'timeout' | 'configuration'
 
+export type GenerationQAAnomaly = {
+  scenario_id?: string
+  vertical?: string
+  round?: number
+  severity?: string
+  code?: string
+  message?: string
+}
+
+export type GenerationQARound = {
+  round_number?: number
+  passed?: boolean
+  latency_ms?: number
+  provider?: string
+  pipeline?: string
+  model?: string
+  names?: string[]
+  anomalies?: GenerationQAAnomaly[]
+}
+
+export type GenerationQAScenario = {
+  id?: string
+  label?: string
+  vertical?: string
+  passed?: boolean
+  anomaly_count?: number
+  signal_hits?: string[]
+  expected_signals?: string[]
+  rounds?: GenerationQARound[]
+}
+
 export type GenerationQASummary = {
   schema_version?: string
   run_id: string
+  created_at?: string
   mode?: string
   scenario_count?: number
   round_count?: number
   passed_count?: number
+  failed_count?: number
   anomaly_count?: number
   critical_anomaly_count?: number
   major_anomaly_count?: number
+  minor_anomaly_count?: number
   verticals?: string[]
+  providers?: string[]
+  pipelines?: string[]
+  average_latency_ms?: number
+  anomalies?: GenerationQAAnomaly[]
+  scenarios?: GenerationQAScenario[]
   artifact_dir?: string
   report_path?: string
   summary_path?: string
+  results_path?: string
 }
 
 export type GenerationQAStatus = {
   available: boolean
   summary_path?: string
   report_path?: string
+  results_path?: string
   summary: GenerationQASummary | null
   error?: string
   message?: string
+}
+
+export type GenerationQAReport = GenerationQAStatus & {
+  report_markdown?: string | null
+  results?: unknown[] | null
 }
 
 export type GenerationQARunMode = 'fast' | 'full'
@@ -127,6 +173,7 @@ export type GenerationQARunResponse = {
   summary: GenerationQASummary
   summary_path?: string
   report_path?: string
+  results_path?: string
 }
 
 export class TelemetryError extends Error {
@@ -179,6 +226,12 @@ export async function fetchGenerationQAStatus(session: TelemetrySession): Promis
   return fetchGatewayJson<GenerationQAStatus>(new URL('/api/namengine/generation-qa', config.gatewayUrl), session, 8_000, isGenerationQAStatus)
 }
 
+export async function fetchGenerationQAReport(session: TelemetrySession): Promise<GenerationQAReport> {
+  const config = telemetryPublicConfig()
+  if (!config) throw new TelemetryError('configuration')
+  return fetchGatewayJson<GenerationQAReport>(new URL('/api/namengine/generation-qa/report', config.gatewayUrl), session, 8_000, isGenerationQAReport)
+}
+
 export async function runGenerationQA(session: TelemetrySession, options: { mode: GenerationQARunMode; useAi?: boolean; confirmAi?: boolean }): Promise<GenerationQARunResponse> {
   const config = telemetryPublicConfig()
   if (!config) throw new TelemetryError('configuration')
@@ -221,6 +274,10 @@ async function fetchGatewayJson<T>(url: URL, session: TelemetrySession, timeoutM
 
 function isGenerationQAStatus(value: unknown): value is GenerationQAStatus {
   return Boolean(value && typeof value === 'object' && 'available' in value && 'summary' in value)
+}
+
+function isGenerationQAReport(value: unknown): value is GenerationQAReport {
+  return Boolean(value && typeof value === 'object' && 'available' in value && 'summary' in value && 'results' in value)
 }
 
 function isGenerationQARunResponse(value: unknown): value is GenerationQARunResponse {

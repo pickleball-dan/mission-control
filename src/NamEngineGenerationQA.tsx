@@ -16,10 +16,13 @@ import {
 } from 'lucide-react'
 
 import {
+  fetchGenerationQAReport,
   fetchGenerationQAStatus,
   runGenerationQA,
   TelemetryError,
+  type GenerationQAReport,
   type GenerationQARunMode,
+  type GenerationQAScenario,
   type GenerationQAStatus,
 } from './telemetryApi'
 import {
@@ -42,6 +45,8 @@ export default function NamEngineGenerationQA() {
   const [runState, setRunState] = useState<RunState>('idle')
   const [runMessage, setRunMessage] = useState('')
   const [selectedRun, setSelectedRun] = useState<SelectedRun>(null)
+  const [report, setReport] = useState<GenerationQAReport | null>(null)
+  const [runPage, setRunPage] = useState(() => window.location.pathname.replace(/\/$/, '') === '/namengine/generation-qa/run')
 
   useEffect(() => {
     let active = true
@@ -79,9 +84,32 @@ export default function NamEngineGenerationQA() {
     }
   }, [])
 
+  const loadReport = useCallback(async (activeSession: TelemetrySession) => {
+    setView('loading')
+    setMessage('')
+    try {
+      const nextReport = await fetchGenerationQAReport(activeSession)
+      setReport(nextReport)
+      setStatus(nextReport)
+      setView(nextReport.available && nextReport.summary ? 'ready' : 'empty')
+    } catch (error) {
+      if (error instanceof TelemetryError && error.kind === 'unauthorized') {
+        setView('unauthorized')
+        setMessage('This Google account is not authorized to view NamEngine Generation QA.')
+      } else {
+        setView('unavailable')
+        setMessage(error instanceof TelemetryError && error.kind === 'timeout'
+          ? 'NamEngine Generation QA took too long to respond.'
+          : 'NamEngine Generation QA report is temporarily unavailable.')
+      }
+    }
+  }, [])
+
   useEffect(() => {
-    if (session) void loadStatus(session)
-  }, [session, loadStatus])
+    if (!session) return
+    if (runPage) void loadReport(session)
+    else void loadStatus(session)
+  }, [session, runPage, loadReport, loadStatus])
 
   const signOut = () => {
     signOutTelemetry()
@@ -101,6 +129,10 @@ export default function NamEngineGenerationQA() {
     }
     const runLabel = `${mode === 'fast' ? 'Fast' : 'Full'} ${useAi ? 'OpenAI' : 'fallback'}`
     setSelectedRun(`${mode}-${useAi ? 'openai' : 'fallback'}`)
+    if (!runPage) {
+      window.history.pushState(null, '', '/namengine/generation-qa/run')
+      setRunPage(true)
+    }
     setRunState('running')
     setRunMessage(`${runLabel} run started…`)
     try {
@@ -110,14 +142,18 @@ export default function NamEngineGenerationQA() {
         summary: response.summary,
         summary_path: response.summary_path || response.summary.summary_path,
         report_path: response.report_path || response.summary.report_path,
+        results_path: response.results_path || response.summary.results_path,
       }
       setStatus(completedStatus)
       setView('ready')
       try {
-        const refreshedStatus = await fetchGenerationQAStatus(session)
-        if (refreshedStatus.available && refreshedStatus.summary) setStatus(refreshedStatus)
+        const refreshedReport = await fetchGenerationQAReport(session)
+        if (refreshedReport.available && refreshedReport.summary) {
+          setReport(refreshedReport)
+          setStatus(refreshedReport)
+        }
       } catch {
-        // Keep the completed run response visible if the follow-up status refresh is unavailable.
+        // Keep the completed run response visible if the follow-up report refresh is unavailable.
       }
       setRunMessage(`${runLabel} run completed.`)
     } catch (error) {
@@ -170,7 +206,7 @@ export default function NamEngineGenerationQA() {
 
         {view === 'unauthorized' && <StatePanel icon={<CircleOff size={24} />} title="Access not available" copy={message || 'This Google account is not authorized to view Generation QA.'} action={<button className="primary-button" onClick={() => void beginGoogleSignIn()}><LogIn size={18} /> Try another account</button>} />}
 
-        {view === 'unavailable' && <StatePanel icon={<TriangleAlert size={24} />} title="Generation QA unavailable" copy={message} action={session && <button className="primary-button" onClick={() => void loadStatus(session)}><RefreshCw size={18} /> Try again</button>} />}
+        {view === 'unavailable' && <StatePanel icon={<TriangleAlert size={24} />} title="Generation QA unavailable" copy={message} action={session && <button className="primary-button" onClick={() => runPage ? void loadReport(session) : void loadStatus(session)}><RefreshCw size={18} /> Try again</button>} />}
 
         {(view === 'empty' || view === 'ready') && (
           <>
@@ -180,7 +216,7 @@ export default function NamEngineGenerationQA() {
                 <span>Fallback runs are local. Full OpenAI runs call the live provider after confirmation.</span>
               </div>
               <div className="telemetry-actions">
-                {session && <button className="secondary-button" disabled={runState === 'running'} onClick={() => void loadStatus(session)}><RefreshCw size={16} /> Refresh</button>}
+                {session && <button className="secondary-button" disabled={runState === 'running'} onClick={() => runPage ? void loadReport(session) : void loadStatus(session)}><RefreshCw size={16} /> Refresh</button>}
                 <button className={`secondary-button generation-qa-run-control${selectedRun === 'fast-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast')}><PlayCircle size={18} /> Run fast</button>
                 <button className={`secondary-button generation-qa-run-control${selectedRun === 'full-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('full')}><PlayCircle size={17} /> Run full</button>
                 <button className={`secondary-button generation-qa-ai-button generation-qa-run-control${selectedRun === 'fast-openai' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast', true)}><PlayCircle size={17} /> Run fast OpenAI</button>
@@ -193,7 +229,9 @@ export default function NamEngineGenerationQA() {
 
             {view === 'empty' && <StatePanel icon={<PlayCircle size={24} />} title="No Generation QA run yet" copy="Run a fast fallback pass to create the first simulator summary." />}
 
-            {view === 'ready' && summary && (
+            {view === 'ready' && summary && runPage && <GenerationQARunReport report={report} status={status} />}
+
+            {view === 'ready' && summary && !runPage && (
               <>
                 <section className="telemetry-metrics" aria-label="Generation QA summary">
                   <UsageCard icon={anomalyCount ? <TriangleAlert size={20} /> : <CheckCircle2 size={20} />} alert={Boolean(anomalyCount)} label="Anomalies" value={String(anomalyCount)} />
@@ -226,6 +264,90 @@ export default function NamEngineGenerationQA() {
         )}
       </main>
     </div>
+  )
+}
+
+function GenerationQARunReport({ report, status }: { report: GenerationQAReport | null; status: GenerationQAStatus | null }) {
+  const summary = report?.summary ?? status?.summary
+  if (!summary) return null
+  const anomalies = summary.anomalies ?? []
+  const scenarios = summary.scenarios ?? []
+  const providers = (summary.providers ?? []).join(', ') || '—'
+  const pipelines = (summary.pipelines ?? []).join(', ') || '—'
+
+  return (
+    <>
+      <section className="telemetry-metrics" aria-label="Generation QA run status">
+        <UsageCard icon={(summary.anomaly_count ?? 0) ? <TriangleAlert size={20} /> : <CheckCircle2 size={20} />} alert={Boolean(summary.anomaly_count)} label="Anomalies" value={String(summary.anomaly_count ?? 0)} />
+        <UsageCard icon={<CheckCircle2 size={20} />} label="Passed scenarios" value={`${summary.passed_count ?? 0} / ${summary.scenario_count ?? 0}`} />
+        <UsageCard icon={<Clock3 size={20} />} label="Avg latency" value={summary.average_latency_ms ? `${summary.average_latency_ms} ms` : '—'} />
+        <UsageCard icon={<Sparkles size={20} />} label="Provider mode" value={summary.mode ?? 'fallback'} />
+      </section>
+
+      <section className="telemetry-grid generation-qa-grid">
+        <article className="telemetry-panel telemetry-panel-wide">
+          <div className="panel-heading"><div><p className="eyebrow">Run status</p><h2>{summary.run_id}</h2></div><span>{summary.created_at ?? 'Latest run'}</span></div>
+          <div className="generation-qa-detail-grid">
+            <Detail label="Providers" value={providers} />
+            <Detail label="Pipelines" value={pipelines} />
+            <Detail label="Critical anomalies" value={String(summary.critical_anomaly_count ?? 0)} />
+            <Detail label="Major anomalies" value={String(summary.major_anomaly_count ?? 0)} />
+            <Detail label="Minor anomalies" value={String(summary.minor_anomaly_count ?? 0)} />
+            <Detail label="Results path" value={status?.results_path || summary.results_path || '—'} />
+          </div>
+        </article>
+
+        <article className="telemetry-panel telemetry-panel-wide">
+          <div className="panel-heading"><div><p className="eyebrow">Anomaly radar</p><h2>Scenario anomalies</h2></div><span>{anomalies.length} found</span></div>
+          {anomalies.length ? (
+            <div className="usage-table-wrap generation-qa-table-wrap">
+              <table className="usage-table generation-qa-anomaly-table">
+                <thead><tr><th>Severity</th><th>Code</th><th>Scenario</th><th>Vertical</th><th>Round</th><th>Message</th></tr></thead>
+                <tbody>
+                  {anomalies.map((anomaly, index) => (
+                    <tr key={`${anomaly.scenario_id ?? 'scenario'}-${anomaly.code ?? 'code'}-${index}`}>
+                      <td>{anomaly.severity ?? '—'}</td>
+                      <td>{anomaly.code ?? '—'}</td>
+                      <td>{anomaly.scenario_id ?? '—'}</td>
+                      <td>{anomaly.vertical ?? '—'}</td>
+                      <td>{anomaly.round ?? '—'}</td>
+                      <td>{anomaly.message ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="empty-panel-copy">No anomalies detected in this run.</p>}
+        </article>
+
+        <article className="telemetry-panel telemetry-panel-wide">
+          <div className="panel-heading"><div><p className="eyebrow">Scenario outputs</p><h2>Generated names by scenario</h2></div><span>{scenarios.length} scenarios</span></div>
+          <div className="generation-qa-scenario-list">
+            {scenarios.map((scenario) => <ScenarioResult key={scenario.id ?? scenario.label} scenario={scenario} />)}
+          </div>
+        </article>
+      </section>
+    </>
+  )
+}
+
+function ScenarioResult({ scenario }: { scenario: GenerationQAScenario }) {
+  return (
+    <article className="generation-qa-scenario-card">
+      <div className="card-topline">
+        <span className={`status ${scenario.passed ? 'status-active' : 'status-paused'}`}>{scenario.passed ? 'Pass' : 'Review'}</span>
+        <span className="priority priority-medium">{scenario.vertical ?? 'vertical'}</span>
+      </div>
+      <h3>{scenario.label ?? scenario.id ?? 'Scenario'}</h3>
+      <p>{scenario.signal_hits?.length ? `Signal hits: ${scenario.signal_hits.join(', ')}` : 'No signal hits recorded.'}</p>
+      {(scenario.rounds ?? []).map((round) => (
+        <div className="generation-qa-round" key={round.round_number ?? `${round.provider}-${round.model}`}>
+          <div><strong>Round {round.round_number ?? '—'}</strong><span>{round.provider ?? '—'} · {round.model ?? '—'} · {round.pipeline ?? '—'} · {round.latency_ms ?? '—'} ms</span></div>
+          <p>{round.names?.join(', ') || 'No names returned.'}</p>
+          {round.anomalies?.length ? <small>{round.anomalies.map((item) => item.message).join(' ')}</small> : null}
+        </div>
+      ))}
+    </article>
   )
 }
 

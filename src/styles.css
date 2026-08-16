@@ -142,6 +142,16 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .generation-qa-detail span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .generation-qa-detail strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .generation-qa-ai-button { width: auto; padding: 10px 14px; }
+.generation-qa-table-wrap { padding-top: 15px; }
+.generation-qa-anomaly-table th, .generation-qa-anomaly-table td { text-align: left; }
+.generation-qa-scenario-list { display: grid; gap: 12px; padding-top: 16px; }
+.generation-qa-scenario-card { padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: #fffaf2; }
+.generation-qa-scenario-card h3 { font-size: 17px; }
+.generation-qa-scenario-card > p { margin: 7px 0 14px; font-size: 12px; }
+.generation-qa-round { padding: 12px 0; border-top: 1px solid var(--line); }
+.generation-qa-round div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.generation-qa-round span, .generation-qa-round small { color: var(--muted); font-size: 11px; }
+.generation-qa-round p { margin: 7px 0 0; color: var(--ink); font-size: 13px; font-weight: 700; }
 
 .telemetry-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 18px; }
 .usage-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; box-shadow: 0 10px 30px rgba(30,47,41,.035); }

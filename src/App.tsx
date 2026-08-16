@@ -288,7 +288,7 @@ function PortfolioDashboard() {
 function App() {
   const path = window.location.pathname.replace(/\/$/, '') || '/'
   if (path === '/operating-pulse' || path === '/namengine/openai-usage') return <NamEngineOpenAIUsage />
-  if (path === '/namengine/generation-qa') return <NamEngineGenerationQA />
+  if (path === '/namengine/generation-qa' || path === '/namengine/generation-qa/run') return <NamEngineGenerationQA />
   return <PortfolioDashboard />
 }
 

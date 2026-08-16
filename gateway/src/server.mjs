@@ -191,6 +191,14 @@ export function createGatewayServer({
         return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
       }
 
+      if (request.method === 'GET' && url.pathname === '/api/namengine/generation-qa/report') {
+        const bearerToken = authorizationToken(request)
+        const identity = await tokenVerifier.verify(bearerToken)
+        if (!limiter.consume(`identity:${identity.sub}`)) throw new RequestError(429, 'rate_limited')
+        const payload = await fetchGenerationQAReport(config, fetchImpl)
+        return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
+      }
+
       if (request.method === 'POST' && url.pathname === '/api/namengine/generation-qa/run') {
         const bearerToken = authorizationToken(request)
         const identity = await tokenVerifier.verify(bearerToken)
@@ -281,6 +289,15 @@ async function fetchGenerationQAStatus(config, fetchImpl) {
   }, config, fetchImpl, isGenerationQAStatus)
 }
 
+async function fetchGenerationQAReport(config, fetchImpl) {
+  return fetchNamEngineJson(generationQAUrl(config, '/report'), {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${config.telemetryToken}`,
+    },
+  }, config, fetchImpl, isGenerationQAReport)
+}
+
 async function runGenerationQA(body, config, fetchImpl) {
   return fetchNamEngineJson(generationQAUrl(config, '/run'), {
     method: 'POST',
@@ -320,6 +337,10 @@ function generationQAUrl(config, suffix = '') {
 
 function isGenerationQAStatus(payload) {
   return Boolean(payload && typeof payload === 'object' && typeof payload.available === 'boolean' && 'summary' in payload)
+}
+
+function isGenerationQAReport(payload) {
+  return Boolean(payload && typeof payload === 'object' && typeof payload.available === 'boolean' && 'summary' in payload && 'results' in payload)
 }
 
 function isGenerationQARunResponse(payload) {

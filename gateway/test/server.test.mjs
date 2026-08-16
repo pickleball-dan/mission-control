@@ -160,20 +160,23 @@ test('proxies only allowlisted telemetry queries with the service secret', async
   assert.equal(rejected.status, 400)
 })
 
-test('proxies Generation QA status, fallback runs, and confirmed AI runs with the service secret', async () => {
+test('proxies Generation QA status, report, fallback runs, and confirmed AI runs with the service secret', async () => {
   const upstreamRequests = []
-  const statusReport = { available: true, summary_path: '/var/data/latest/summary.json', report_path: '/var/data/latest/report.md', summary: { run_id: 'generation-qa-test' } }
+  const statusReport = { available: true, summary_path: '/var/data/latest/summary.json', report_path: '/var/data/latest/report.md', results_path: '/var/data/latest/results.json', summary: { run_id: 'generation-qa-test' } }
+  const report = { ...statusReport, report_markdown: '# QA report', results: [{ id: 'baby-test' }] }
   const runReport = { status: 'completed', summary: { run_id: 'generation-qa-run', mode: 'fallback', scenario_count: 3 } }
   const base = await start({
     fetchImpl: async (url, options) => {
       upstreamRequests.push({ url: String(url), options })
       if (String(url).endsWith('/run')) return Response.json(runReport)
+      if (String(url).endsWith('/report')) return Response.json(report)
       return Response.json(statusReport)
     },
   })
 
   const headers = { Origin: origin, Authorization: 'Bearer valid-id-token' }
   const status = await fetch(`${base}/api/namengine/generation-qa`, { headers })
+  const reportResponse = await fetch(`${base}/api/namengine/generation-qa/report`, { headers })
   const run = await fetch(`${base}/api/namengine/generation-qa/run`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
@@ -187,18 +190,22 @@ test('proxies Generation QA status, fallback runs, and confirmed AI runs with th
 
   assert.equal(status.status, 200)
   assert.deepEqual(await status.json(), statusReport)
+  assert.equal(reportResponse.status, 200)
+  assert.deepEqual(await reportResponse.json(), report)
   assert.equal(run.status, 200)
   assert.deepEqual(await run.json(), runReport)
   assert.equal(aiRun.status, 200)
   assert.deepEqual(await aiRun.json(), runReport)
   assert.equal(upstreamRequests[0].url, 'https://namengine.example.com/api/internal/mission-control/generation-qa')
-  assert.equal(upstreamRequests[1].url, 'https://namengine.example.com/api/internal/mission-control/generation-qa/run')
+  assert.equal(upstreamRequests[1].url, 'https://namengine.example.com/api/internal/mission-control/generation-qa/report')
   assert.equal(upstreamRequests[2].url, 'https://namengine.example.com/api/internal/mission-control/generation-qa/run')
+  assert.equal(upstreamRequests[3].url, 'https://namengine.example.com/api/internal/mission-control/generation-qa/run')
   assert.equal(upstreamRequests[0].options.headers.Authorization, 'Bearer service-secret')
   assert.equal(upstreamRequests[1].options.headers.Authorization, 'Bearer service-secret')
   assert.equal(upstreamRequests[2].options.headers.Authorization, 'Bearer service-secret')
-  assert.equal(upstreamRequests[1].options.body, JSON.stringify({ mode: 'fast', use_ai: false, confirm_ai: false }))
-  assert.equal(upstreamRequests[2].options.body, JSON.stringify({ mode: 'full', use_ai: true, confirm_ai: true }))
+  assert.equal(upstreamRequests[3].options.headers.Authorization, 'Bearer service-secret')
+  assert.equal(upstreamRequests[2].options.body, JSON.stringify({ mode: 'fast', use_ai: false, confirm_ai: false }))
+  assert.equal(upstreamRequests[3].options.body, JSON.stringify({ mode: 'full', use_ai: true, confirm_ai: true }))
 
   const rejectedMode = await fetch(`${base}/api/namengine/generation-qa/run`, {
     method: 'POST',
