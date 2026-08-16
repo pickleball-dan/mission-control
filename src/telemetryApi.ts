@@ -125,6 +125,8 @@ export type GenerationQARunMode = 'fast' | 'full'
 export type GenerationQARunResponse = {
   status: 'completed'
   summary: GenerationQASummary
+  summary_path?: string
+  report_path?: string
 }
 
 export class TelemetryError extends Error {

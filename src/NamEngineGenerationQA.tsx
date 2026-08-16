@@ -105,8 +105,20 @@ export default function NamEngineGenerationQA() {
     setRunMessage(`${runLabel} run started…`)
     try {
       const response = await runGenerationQA(session, { mode, useAi, confirmAi: useAi })
-      setStatus({ available: true, summary: response.summary, summary_path: response.summary.summary_path, report_path: response.summary.report_path })
+      const completedStatus = {
+        available: true,
+        summary: response.summary,
+        summary_path: response.summary_path || response.summary.summary_path,
+        report_path: response.report_path || response.summary.report_path,
+      }
+      setStatus(completedStatus)
       setView('ready')
+      try {
+        const refreshedStatus = await fetchGenerationQAStatus(session)
+        if (refreshedStatus.available && refreshedStatus.summary) setStatus(refreshedStatus)
+      } catch {
+        // Keep the completed run response visible if the follow-up status refresh is unavailable.
+      }
       setRunMessage(`${runLabel} run completed.`)
     } catch (error) {
       setRunMessage(error instanceof TelemetryError && error.kind === 'timeout'
