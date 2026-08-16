@@ -202,8 +202,11 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 
 @media (max-width: 780px) {
   .app-shell { display: block; }
-  .sidebar { position: static; width: 100%; height: auto; grid-template-columns: 42px 1fr; grid-template-rows: auto; padding: 18px 20px; }
-  .sidebar nav, .sidebar-note { display: none; }
+  .sidebar { position: static; width: 100%; height: auto; grid-template-columns: 42px 1fr; grid-template-rows: auto auto; padding: 18px 20px; }
+  .sidebar nav { display: flex; grid-column: 1 / -1; gap: 8px; padding-top: 16px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .sidebar nav::-webkit-scrollbar { display: none; }
+  .sidebar-note { display: none; }
+  .nav-item { flex: 0 0 auto; width: auto; min-height: 40px; margin-bottom: 0; padding: 10px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; font-size: 13px; white-space: nowrap; }
   main { padding: 26px 18px 60px; }
   .topbar, .focus-panel, .section-heading { align-items: stretch; flex-direction: column; }
   .topbar .primary-button { width: 100%; }
