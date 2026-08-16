@@ -31,6 +31,7 @@ import {
 
 type ViewState = 'checking' | 'signed_out' | 'loading' | 'ready' | 'empty' | 'unauthorized' | 'unavailable'
 type RunState = 'idle' | 'running'
+type SelectedRun = 'fast-fallback' | 'full-fallback' | 'fast-openai' | 'full-openai' | null
 
 export default function NamEngineGenerationQA() {
   const [session, setSession] = useState<TelemetrySession | null>(null)
@@ -39,6 +40,7 @@ export default function NamEngineGenerationQA() {
   const [message, setMessage] = useState('')
   const [runState, setRunState] = useState<RunState>('idle')
   const [runMessage, setRunMessage] = useState('')
+  const [selectedRun, setSelectedRun] = useState<SelectedRun>(null)
 
   useEffect(() => {
     let active = true
@@ -97,6 +99,7 @@ export default function NamEngineGenerationQA() {
       if (!window.confirm(`Run a ${modeLabel} OpenAI Generation QA now? This will call OpenAI for ${scope} and may take several minutes.`)) return
     }
     const runLabel = `${mode === 'fast' ? 'Fast' : 'Full'} ${useAi ? 'OpenAI' : 'fallback'}`
+    setSelectedRun(`${mode}-${useAi ? 'openai' : 'fallback'}`)
     setRunState('running')
     setRunMessage(`${runLabel} run started…`)
     try {
@@ -164,13 +167,14 @@ export default function NamEngineGenerationQA() {
               </div>
               <div className="telemetry-actions">
                 {session && <button className="secondary-button" disabled={runState === 'running'} onClick={() => void loadStatus(session)}><RefreshCw size={16} /> Refresh</button>}
-                <button className="primary-button" disabled={runState === 'running'} onClick={() => void runQA('fast')}><PlayCircle size={18} /> Run fast</button>
-                <button className="secondary-button" disabled={runState === 'running'} onClick={() => void runQA('full')}><PlayCircle size={17} /> Run full</button>
-                <button className="secondary-button generation-qa-ai-button" disabled={runState === 'running'} onClick={() => void runQA('fast', true)}><PlayCircle size={17} /> Run fast OpenAI</button>
-                <button className="danger-button generation-qa-ai-button" disabled={runState === 'running'} onClick={() => void runQA('full', true)}><PlayCircle size={17} /> Run full OpenAI</button>
+                <button className={`primary-button${selectedRun === 'fast-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast')}><PlayCircle size={18} /> Run fast</button>
+                <button className={`secondary-button${selectedRun === 'full-fallback' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('full')}><PlayCircle size={17} /> Run full</button>
+                <button className={`secondary-button generation-qa-ai-button${selectedRun === 'fast-openai' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('fast', true)}><PlayCircle size={17} /> Run fast OpenAI</button>
+                <button className={`danger-button generation-qa-ai-button${selectedRun === 'full-openai' ? ' generation-qa-run-selected' : ''}`} disabled={runState === 'running'} onClick={() => void runQA('full', true)}><PlayCircle size={17} /> Run full OpenAI</button>
               </div>
             </div>
 
+            {runState === 'running' && <div className="generation-qa-status-bar" aria-label="Generation QA run in progress"><div /></div>}
             {runMessage && <p className="generation-qa-run-message">{runMessage}</p>}
 
             {view === 'empty' && <StatePanel icon={<PlayCircle size={24} />} title="No Generation QA run yet" copy="Run a fast fallback pass to create the first simulator summary." />}

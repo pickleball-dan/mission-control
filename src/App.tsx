@@ -163,7 +163,6 @@ function PortfolioDashboard() {
         <nav>
           <button className="nav-item active"><LayoutDashboard size={18} /> Overview</button>
           <button className="nav-item"><Target size={18} /> Projects</button>
-          <button className="nav-item"><Rocket size={18} /> Launches</button>
           <a className="nav-item nav-link" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
           <a className="nav-item nav-link" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
         </nav>

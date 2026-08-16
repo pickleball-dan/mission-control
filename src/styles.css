@@ -131,6 +131,10 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .generation-qa-controls strong { font: 800 13px 'Manrope'; }
 .generation-qa-controls span, .generation-qa-run-message { color: var(--muted); font-size: 12px; }
 .generation-qa-run-message { margin: -6px 0 16px; }
+.generation-qa-run-selected { outline: 3px solid rgba(201,103,79,.28); outline-offset: 2px; }
+.generation-qa-status-bar { height: 7px; margin: -7px 0 16px; overflow: hidden; border-radius: 99px; background: var(--sand); }
+.generation-qa-status-bar div { width: 40%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green), var(--coral)); animation: generation-qa-status 1.2s ease-in-out infinite; }
+@keyframes generation-qa-status { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
 .generation-qa-grid { margin-top: 18px; }
 .generation-qa-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 18px; }
 .generation-qa-detail { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: #fffaf2; display: flex; flex-direction: column; gap: 5px; }
