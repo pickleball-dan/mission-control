@@ -152,6 +152,22 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .generation-qa-round div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .generation-qa-round span, .generation-qa-round small { color: var(--muted); font-size: 11px; }
 .generation-qa-round p { margin: 7px 0 0; color: var(--ink); font-size: 13px; font-weight: 700; }
+.comparison-controls > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.comparison-controls > div:first-child strong { font: 800 13px 'Manrope'; }
+.comparison-controls > div:first-child span { color: var(--muted); font-size: 12px; }
+.comparison-controls label { white-space: nowrap; }
+.comparison-controls select { min-width: 80px; }
+.comparison-grid { margin-top: 18px; }
+.provider-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.provider-card { padding: 21px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(135deg, var(--panel), #f4f8f5); }
+.provider-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; color: var(--green); }
+.provider-card > p { margin: 5px 0 18px; font-size: 12px; }
+.provider-card dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.provider-card dl div { padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.72); }
+.provider-card dt { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.provider-card dd { margin: 5px 0 0; font: 800 17px 'Manrope'; }
+.table-subtitle { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+.comparison-caveat { margin: 15px 0 0; font-size: 12px; }
 
 .telemetry-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 18px; }
 .usage-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; box-shadow: 0 10px 30px rgba(30,47,41,.035); }

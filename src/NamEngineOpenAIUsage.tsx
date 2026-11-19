@@ -90,12 +90,12 @@ export default function NamEngineOpenAIUsage() {
     } catch (error) {
       if (error instanceof TelemetryError && error.kind === 'unauthorized') {
         setView('unauthorized')
-        setMessage('This Google account is not authorized to view NamEngine telemetry.')
+        setMessage('This Google account is not authorized to view NameVerity telemetry.')
       } else {
         setView('unavailable')
         setMessage(error instanceof TelemetryError && error.kind === 'timeout'
-          ? 'NamEngine telemetry took too long to respond.'
-          : 'NamEngine telemetry is temporarily unavailable.')
+          ? 'NameVerity telemetry took too long to respond.'
+          : 'NameVerity telemetry is temporarily unavailable.')
       }
     }
   }, [days, sessionSort])
@@ -128,6 +128,7 @@ export default function NamEngineOpenAIUsage() {
           <a className="nav-item nav-link" href="/#projects"><Target size={18} /> Projects</a>
           <a className="nav-item nav-link active" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
           <a className="nav-item nav-link" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
+          <a className="nav-item nav-link" href="/nameverity/provider-comparison"><Sparkles size={18} /> AI comparison</a>
         </nav>
         <div className="sidebar-note"><Sparkles size={18} /><div><strong>Private telemetry</strong><span>Aggregates only. No customer data.</span></div></div>
       </aside>
@@ -135,9 +136,9 @@ export default function NamEngineOpenAIUsage() {
       <main>
         <header className="topbar telemetry-topbar">
           <div>
-            <p className="eyebrow">NamEngine operations</p>
+            <p className="eyebrow">NameVerity operations</p>
             <h1>OpenAI usage</h1>
-            <p>Estimated cost, request volume, token usage, reliability, and latency across NamEngine.</p>
+            <p>Estimated cost, request volume, token usage, reliability, and latency across NameVerity.</p>
           </div>
           <div className="telemetry-actions">
             {session && <span className="signed-in-user">{session.email}</span>}
@@ -145,7 +146,7 @@ export default function NamEngineOpenAIUsage() {
           </div>
         </header>
 
-        {(view === 'checking' || view === 'loading') && <StatePanel icon={<RefreshCw className="spin" size={24} />} title="Loading telemetry" copy="Connecting securely to NamEngine…" />}
+        {(view === 'checking' || view === 'loading') && <StatePanel icon={<RefreshCw className="spin" size={24} />} title="Loading telemetry" copy="Connecting securely to NameVerity…" />}
 
         {view === 'signed_out' && <StatePanel icon={<LogIn size={24} />} title="Sign in to view telemetry" copy="Use an approved Google account. Mission Control stores no service credentials." action={<button className="primary-button" disabled={!configured} onClick={() => void beginGoogleSignIn()}><LogIn size={18} /> Continue with Google</button>} />}
 
@@ -153,7 +154,7 @@ export default function NamEngineOpenAIUsage() {
 
         {view === 'unavailable' && <StatePanel icon={<TriangleAlert size={24} />} title="Telemetry unavailable" copy={message} action={session && <button className="primary-button" onClick={() => void loadReport(session)}><RefreshCw size={18} /> Try again</button>} />}
 
-        {view === 'empty' && <><TelemetryControls days={days} setDays={setDays} session={session} loadReport={loadReport} /><StatePanel icon={<Activity size={24} />} title="No usage in this period" copy="NamEngine returned a valid empty telemetry report. Try a longer date range." /></>}
+        {view === 'empty' && <><TelemetryControls days={days} setDays={setDays} session={session} loadReport={loadReport} /><StatePanel icon={<Activity size={24} />} title="No usage in this period" copy="NameVerity returned a valid empty telemetry report. Try a longer date range." /></>}
 
         {view === 'ready' && report && (
           <>
@@ -203,7 +204,7 @@ function SessionCostTable({ rows, sort, setSort }: { rows: SessionUsageMetric[];
     const nextDirection = active && sort.direction === 'desc' ? 'asc' : 'desc'
     return <button className={`sort-header${active ? ' active' : ''}`} type="button" onClick={() => setSort({ key, direction: nextDirection })}>{label}<span>{active ? (sort.direction === 'desc' ? '↓' : '↑') : '↕'}</span></button>
   }
-  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{sortedCards.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{formatSessionLabel(row)}</p><dl><div><dt>Time</dt><dd>{formatTimestamp(row.timestamp, row.date)}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Raw ID</dt><dd title={row.session_id}>{shortSessionId(row.session_id)}</dd></div></dl><StageBreakdown rows={row.stage_breakdown ?? []} compact /></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>{sortHeader('session_id', 'Session')}</th><th>{sortHeader('timestamp', 'Time')}</th><th>{sortHeader('model', 'Model')}</th><th>{sortHeader('request_count', 'Requests')}</th><th>{sortHeader('total_tokens', 'Tokens')}</th><th>{sortHeader('generated_name_count', 'Names')}</th><th>{sortHeader('average_latency_ms', 'Avg. latency')}</th><th>{sortHeader('estimated_spend_usd', 'Estimated cost')}</th></tr></thead><tbody>{sortedRows.map((row) => <SessionUsageRows key={row.session_id} row={row} />)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NamEngine telemetry API so Mission Control can receive per-session rows.</p>}</article>
+  return <article className="telemetry-panel telemetry-panel-wide"><div className="panel-heading"><div><p className="eyebrow">Sessions</p><h2>Estimated cost by session</h2></div><span>{rows.length ? `${formatNumber(rows.length)} sessions` : 'No session rows yet'}</span></div>{visibleRows.length ? <><div className="session-cost-cards">{sortedCards.map((row) => <div className="session-cost-card" key={row.session_id}><div><strong>{formatCurrency(row.estimated_spend_usd, 4)}</strong><span>{formatNumber(row.request_count)} requests · {formatNumber(row.total_tokens)} tokens</span></div><p title={row.session_id}>{formatSessionLabel(row)}</p><dl><div><dt>Time</dt><dd>{formatTimestamp(row.timestamp, row.date)}</dd></div><div><dt>Model</dt><dd>{row.model}</dd></div><div><dt>Raw ID</dt><dd title={row.session_id}>{shortSessionId(row.session_id)}</dd></div></dl><StageBreakdown rows={row.stage_breakdown ?? []} compact /></div>)}</div><div className="usage-table-wrap session-cost-table-wrap"><table className="usage-table session-cost-table"><thead><tr><th>{sortHeader('session_id', 'Session')}</th><th>{sortHeader('timestamp', 'Time')}</th><th>{sortHeader('model', 'Model')}</th><th>{sortHeader('request_count', 'Requests')}</th><th>{sortHeader('total_tokens', 'Tokens')}</th><th>{sortHeader('generated_name_count', 'Names')}</th><th>{sortHeader('average_latency_ms', 'Avg. latency')}</th><th>{sortHeader('estimated_spend_usd', 'Estimated cost')}</th></tr></thead><tbody>{sortedRows.map((row) => <SessionUsageRows key={row.session_id} row={row} />)}</tbody></table></div></> : <p className="empty-panel-copy">Deploy the latest NameVerity telemetry API so Mission Control can receive per-session rows.</p>}</article>
 }
 
 function SessionUsageRows({ row }: { row: SessionUsageMetric }) {
@@ -235,7 +236,7 @@ function StageBreakdown({ rows, compact = false }: { rows: StageUsageMetric[]; c
 }
 
 function UsageExceptionsPanel({ report }: { report?: UsageExceptionReport }) {
-  if (!report) return <article className="telemetry-panel"><div className="panel-heading"><div><p className="eyebrow">Exceptions</p><h2>Usage exceptions</h2></div></div><p className="empty-panel-copy">Deploy the latest NamEngine telemetry API to see usage exceptions.</p></article>
+  if (!report) return <article className="telemetry-panel"><div className="panel-heading"><div><p className="eyebrow">Exceptions</p><h2>Usage exceptions</h2></div></div><p className="empty-panel-copy">Deploy the latest NameVerity telemetry API to see usage exceptions.</p></article>
   const summary = report.summary
   const rows = [
     { label: 'Unexpected request types', value: summary.unexpected_request_type_count },

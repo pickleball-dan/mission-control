@@ -19,6 +19,7 @@ function config(overrides = {}) {
     callbackUrl: `${origin}/namengine/openai-usage`,
     upstreamTimeoutMs: 50,
     generationQaTimeoutMs: 50,
+    providerComparisonTimeoutMs: 50,
     maxResponseBytes: 8 * 1024,
     rateLimitMax: 60,
     rateLimitWindowMs: 60_000,
@@ -220,6 +221,51 @@ test('proxies Generation QA status, report, fallback runs, and confirmed AI runs
     body: JSON.stringify({ mode: 'full', use_ai: true }),
   })
   assert.equal(rejectedAi.status, 400)
+})
+
+test('proxies only the fixed NameVerity provider-comparison routes', async () => {
+  const upstreamRequests = []
+  const summary = {
+    schema_version: 'nameverity-provider-comparison-v1',
+    run_id: 'provider-comparison-test',
+    prompt_equivalence_verified: true,
+    provider_summary: [
+      { provider: 'openai', model: 'gpt-4.1-mini', completed_count: 1 },
+      { provider: 'xai', model: 'grok-4.7', completed_count: 1 },
+    ],
+    comparisons: [],
+  }
+  const base = await start({
+    fetchImpl: async (url, options) => {
+      upstreamRequests.push({ url: String(url), options })
+      if (String(url).endsWith('/run')) return Response.json({ status: 'completed', summary })
+      return Response.json({ available: true, summary })
+    },
+  })
+  const headers = { Origin: origin, Authorization: 'Bearer valid-id-token' }
+  const status = await fetch(`${base}/api/nameverity/provider-comparison`, { headers })
+  const run = await fetch(`${base}/api/nameverity/provider-comparison/run`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'fast', repetitions: 2, confirm_ai: true }),
+  })
+
+  assert.equal(status.status, 200)
+  assert.equal(run.status, 200)
+  assert.deepEqual(await status.json(), { available: true, summary })
+  assert.deepEqual(await run.json(), { status: 'completed', summary })
+  assert.equal(upstreamRequests[0].url, 'https://namengine.example.com/api/internal/mission-control/provider-comparison')
+  assert.equal(upstreamRequests[1].url, 'https://namengine.example.com/api/internal/mission-control/provider-comparison/run')
+  assert.equal(upstreamRequests[1].options.headers.Authorization, 'Bearer service-secret')
+  assert.equal(upstreamRequests[1].options.body, JSON.stringify({ mode: 'fast', repetitions: 2, confirm_ai: true }))
+
+  const invalid = await fetch(`${base}/api/nameverity/provider-comparison/run`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'fast', repetitions: 4, confirm_ai: true }),
+  })
+  assert.equal(invalid.status, 400)
+  assert.equal(upstreamRequests.length, 2)
 })
 
 test('returns safe unavailable, timeout, and response-size errors', async () => {

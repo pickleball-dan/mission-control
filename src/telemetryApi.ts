@@ -112,6 +112,7 @@ export type GenerationQARound = {
   pipeline?: string
   model?: string
   names?: string[]
+  generated_name_count?: number
   anomalies?: GenerationQAAnomaly[]
 }
 
@@ -174,6 +175,76 @@ export type GenerationQARunResponse = {
   summary_path?: string
   report_path?: string
   results_path?: string
+}
+
+export type ProviderComparisonMetric = {
+  provider: 'openai' | 'xai'
+  model: string
+  run_count: number
+  completed_count: number
+  completion_rate: number
+  average_latency_ms: number
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+  estimated_cost_usd: number
+  candidate_count: number
+  duplicate_count: number
+  avoid_hit_count: number
+  average_taste_fit: number
+  average_usability: number
+  average_distinctiveness: number
+}
+
+export type ProviderComparisonRunMetric = {
+  provider: 'openai' | 'xai'
+  model?: string
+  completed: boolean
+  error_type?: string
+  candidate_count: number
+  latency_ms: number
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+  estimated_cost_usd: number
+  duplicate_count: number
+  avoid_hit_count: number
+  average_taste_fit: number
+  average_usability: number
+  average_distinctiveness: number
+}
+
+export type ProviderComparisonSummary = {
+  schema_version: 'nameverity-provider-comparison-v1'
+  run_id: string
+  created_at: string
+  comparison: 'openai_vs_xai'
+  providers: Array<'openai' | 'xai'>
+  mode: 'fast' | 'full'
+  repetitions: number
+  fixture_count: number
+  comparison_count: number
+  prompt_equivalence_verified: boolean
+  provider_summary: ProviderComparisonMetric[]
+  comparisons: Array<{
+    fixture_id: string
+    fixture_label: string
+    vertical: string
+    repetition: number
+    prompt_fingerprint: string
+    prompt_equivalence_verified: boolean
+    providers: Record<string, ProviderComparisonRunMetric>
+  }>
+}
+
+export type ProviderComparisonStatus = {
+  available: boolean
+  summary: ProviderComparisonSummary | null
+}
+
+export type ProviderComparisonRunResponse = {
+  status: 'completed'
+  summary: ProviderComparisonSummary
 }
 
 export class TelemetryError extends Error {
@@ -248,6 +319,36 @@ export async function runGenerationQA(session: TelemetrySession, options: { mode
   )
 }
 
+export async function fetchProviderComparison(session: TelemetrySession): Promise<ProviderComparisonStatus> {
+  const config = telemetryPublicConfig()
+  if (!config) throw new TelemetryError('configuration')
+  return fetchGatewayJson<ProviderComparisonStatus>(
+    new URL('/api/nameverity/provider-comparison', config.gatewayUrl),
+    session,
+    8_000,
+    isProviderComparisonStatus,
+  )
+}
+
+export async function runProviderComparison(
+  session: TelemetrySession,
+  options: { mode: GenerationQARunMode; repetitions: number },
+): Promise<ProviderComparisonRunResponse> {
+  const config = telemetryPublicConfig()
+  if (!config) throw new TelemetryError('configuration')
+  return fetchGatewayJson<ProviderComparisonRunResponse>(
+    new URL('/api/nameverity/provider-comparison/run', config.gatewayUrl),
+    session,
+    900_000,
+    isProviderComparisonRunResponse,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: options.mode, repetitions: options.repetitions, confirm_ai: true }),
+    },
+  )
+}
+
 async function fetchGatewayJson<T>(url: URL, session: TelemetrySession, timeoutMs: number, validate: (value: unknown) => value is T, init: RequestInit = {}): Promise<T> {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
@@ -282,4 +383,18 @@ function isGenerationQAReport(value: unknown): value is GenerationQAReport {
 
 function isGenerationQARunResponse(value: unknown): value is GenerationQARunResponse {
   return Boolean(value && typeof value === 'object' && (value as { status?: unknown }).status === 'completed' && typeof (value as { summary?: { run_id?: unknown } }).summary?.run_id === 'string')
+}
+
+function isProviderComparisonStatus(value: unknown): value is ProviderComparisonStatus {
+  return Boolean(value && typeof value === 'object' && 'available' in value && 'summary' in value)
+}
+
+function isProviderComparisonRunResponse(value: unknown): value is ProviderComparisonRunResponse {
+  const payload = value as { status?: unknown; summary?: { schema_version?: unknown; provider_summary?: unknown } }
+  return Boolean(
+    payload
+      && payload.status === 'completed'
+      && payload.summary?.schema_version === 'nameverity-provider-comparison-v1'
+      && Array.isArray(payload.summary.provider_summary),
+  )
 }

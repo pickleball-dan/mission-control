@@ -17,6 +17,7 @@ import {
 import NamEngineCostSummaryCard from './NamEngineCostSummaryCard'
 import NamEngineGenerationQA from './NamEngineGenerationQA'
 import NamEngineOpenAIUsage from './NamEngineOpenAIUsage'
+import NameVerityProviderComparison from './NameVerityProviderComparison'
 
 type Status = 'Active' | 'Planning' | 'Paused' | 'Launched'
 type Priority = 'Critical' | 'High' | 'Medium' | 'Low'
@@ -36,7 +37,7 @@ type Project = {
 const seedProjects: Project[] = [
   {
     id: 1,
-    name: 'Namengine Baby',
+    name: 'NameVerity Baby',
     description: 'AI-guided baby-name discovery and recommendation engine.',
     status: 'Active',
     priority: 'Critical',
@@ -165,6 +166,7 @@ function PortfolioDashboard() {
           <a className="nav-item nav-link" href="#projects"><Target size={18} /> Projects</a>
           <a className="nav-item nav-link" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
           <a className="nav-item nav-link" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
+          <a className="nav-item nav-link" href="/nameverity/provider-comparison"><Sparkles size={18} /> AI comparison</a>
         </nav>
         <div className="sidebar-note">
           <Sparkles size={18} />
@@ -289,6 +291,7 @@ function App() {
   const path = window.location.pathname.replace(/\/$/, '') || '/'
   if (path === '/operating-pulse' || path === '/namengine/openai-usage') return <NamEngineOpenAIUsage />
   if (path === '/namengine/generation-qa' || path === '/namengine/generation-qa/run') return <NamEngineGenerationQA />
+  if (path === '/nameverity/provider-comparison') return <NameVerityProviderComparison />
   return <PortfolioDashboard />
 }
 
