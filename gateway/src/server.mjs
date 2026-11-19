@@ -16,6 +16,7 @@ const QUERY_ALLOWLIST = new Set([
 ])
 const DEFAULT_TIMEOUT_MS = 5_000
 const DEFAULT_MAX_RESPONSE_BYTES = 512 * 1024
+const DEFAULT_PROVIDER_COMPARISON_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 export class RequestError extends Error {
   constructor(status, code) {
@@ -65,6 +66,7 @@ export function loadConfig(environment = process.env) {
     upstreamTimeoutMs: DEFAULT_TIMEOUT_MS,
     generationQaTimeoutMs: 130_000,
     providerComparisonTimeoutMs: 900_000,
+    providerComparisonMaxResponseBytes: DEFAULT_PROVIDER_COMPARISON_MAX_RESPONSE_BYTES,
     maxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES,
     rateLimitMax: 60,
     rateLimitWindowMs: 60_000,
@@ -350,7 +352,7 @@ async function fetchProviderComparison(config, fetchImpl) {
       Accept: 'application/json',
       Authorization: `Bearer ${config.telemetryToken}`,
     },
-  }, config, fetchImpl, isProviderComparisonStatus)
+  }, { ...config, maxResponseBytes: config.providerComparisonMaxResponseBytes }, fetchImpl, isProviderComparisonStatus)
 }
 
 async function runProviderComparison(body, config, fetchImpl) {
@@ -362,7 +364,11 @@ async function runProviderComparison(body, config, fetchImpl) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-  }, { ...config, upstreamTimeoutMs: config.providerComparisonTimeoutMs }, fetchImpl, isProviderComparisonRunResponse)
+  }, {
+    ...config,
+    upstreamTimeoutMs: config.providerComparisonTimeoutMs,
+    maxResponseBytes: config.providerComparisonMaxResponseBytes,
+  }, fetchImpl, isProviderComparisonRunResponse)
 }
 
 async function fetchNamEngineJson(target, options, config, fetchImpl, validate) {

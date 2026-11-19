@@ -20,6 +20,7 @@ function config(overrides = {}) {
     upstreamTimeoutMs: 50,
     generationQaTimeoutMs: 50,
     providerComparisonTimeoutMs: 50,
+    providerComparisonMaxResponseBytes: 8 * 1024,
     maxResponseBytes: 8 * 1024,
     rateLimitMax: 60,
     rateLimitWindowMs: 60_000,
@@ -229,12 +230,20 @@ test('proxies only the fixed NameVerity provider-comparison routes', async () =>
     schema_version: 'nameverity-provider-comparison-v2',
     run_id: 'provider-comparison-test',
     prompt_equivalence_verified: true,
+    fixture_prompts: [{ fixture_id: 'baby-test', prompt: { brief: { notes: 'Synthetic prompt' } } }],
     provider_summary: [
       { provider: 'openai', model: 'gpt-4.1-mini', completed_count: 1 },
       { provider: 'claude', model: 'claude-sonnet-4-5-20250929', completed_count: 1 },
       { provider: 'xai', model: 'grok-4.7', completed_count: 1 },
     ],
-    comparisons: [],
+    comparisons: [{
+      fixture_id: 'baby-test',
+      providers: {
+        openai: { candidates: [{ name: 'Synthetic OpenAI Name' }] },
+        claude: { candidates: [{ name: 'Synthetic Claude Name' }] },
+        xai: { candidates: [{ name: 'Synthetic Grok Name' }] },
+      },
+    }],
   }
   const base = await start({
     fetchImpl: async (url, options) => {
@@ -253,7 +262,9 @@ test('proxies only the fixed NameVerity provider-comparison routes', async () =>
 
   assert.equal(status.status, 200)
   assert.equal(run.status, 200)
-  assert.deepEqual(await status.json(), { available: true, summary })
+  const statusPayload = await status.json()
+  assert.deepEqual(statusPayload, { available: true, summary })
+  assert.match(JSON.stringify(statusPayload), /Synthetic Claude Name/)
   assert.deepEqual(await run.json(), { status: 'completed', summary })
   assert.equal(upstreamRequests[0].url, 'https://namengine.example.com/api/internal/mission-control/provider-comparison')
   assert.equal(upstreamRequests[1].url, 'https://namengine.example.com/api/internal/mission-control/provider-comparison/run')

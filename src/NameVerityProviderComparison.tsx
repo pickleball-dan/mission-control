@@ -25,6 +25,7 @@ import {
   type ProviderId,
   type ProviderOption,
   type ProviderComparisonMetric,
+  type ProviderComparisonCandidate,
   type ProviderComparisonSummary,
 } from './telemetryApi'
 import {
@@ -192,7 +193,7 @@ function ComparisonControls({ pack, setPack, providerOptions, selectedProviders,
       ? selectedProviders.filter((item) => item !== provider)
       : [...selectedProviders, provider])
   }
-  return <div className="telemetry-controls comparison-controls"><div><strong>Controlled live test</strong><span>Production-shaped synthetic intake only; no customer information or generated names leave NameVerity.</span><div className="provider-selector" aria-label="Providers to compare">{options.map((option) => <label key={option.id} title={option.configured ? option.model : 'Provider key is not configured'}><input type="checkbox" checked={selectedProviders.includes(option.id)} disabled={running || !option.configured} onChange={() => toggleProvider(option.id)} /> {option.label}{!option.configured ? ' · unavailable' : ''}</label>)}</div></div><div className="telemetry-actions"><label>Journey pack<select value={pack} disabled={running} onChange={(event) => setPack(event.target.value as ComparisonPack)}><option value="smoke">Smoke · 3 deep journeys</option><option value="standard">Standard · 8 deep journeys</option><option value="full">Full · all Baby journeys</option></select></label><label>Repetitions<select value={repetitions} disabled={running} onChange={(event) => setRepetitions(Number(event.target.value))}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label><button className="secondary-button" disabled={running} onClick={onRefresh}><RefreshCw size={16} /> Refresh</button><button className="primary-button" disabled={running || selectedProviders.length < 2} onClick={() => void onRun()}><PlayCircle size={18} /> {running ? 'Running…' : 'Run comparison'}</button></div></div>
+  return <div className="telemetry-controls comparison-controls"><div><strong>Controlled live test</strong><span>Production-shaped synthetic intake only. Prompts and generated names appear below for human review; no customer sessions are used.</span><div className="provider-selector" aria-label="Providers to compare">{options.map((option) => <label key={option.id} title={option.configured ? option.model : 'Provider key is not configured'}><input type="checkbox" checked={selectedProviders.includes(option.id)} disabled={running || !option.configured} onChange={() => toggleProvider(option.id)} /> {option.label}{!option.configured ? ' · unavailable' : ''}</label>)}</div></div><div className="telemetry-actions"><label>Journey pack<select value={pack} disabled={running} onChange={(event) => setPack(event.target.value as ComparisonPack)}><option value="smoke">Smoke · 3 deep journeys</option><option value="standard">Standard · 8 deep journeys</option><option value="full">Full · all Baby journeys</option></select></label><label>Repetitions<select value={repetitions} disabled={running} onChange={(event) => setRepetitions(Number(event.target.value))}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label><button className="secondary-button" disabled={running} onClick={onRefresh}><RefreshCw size={16} /> Refresh</button><button className="primary-button" disabled={running || selectedProviders.length < 2} onClick={() => void onRun()}><PlayCircle size={18} /> {running ? 'Running…' : 'Run comparison'}</button></div></div>
 }
 
 function ComparisonReport({ summary }: { summary: ProviderComparisonSummary }) {
@@ -221,8 +222,53 @@ function ComparisonReport({ summary }: { summary: ProviderComparisonSummary }) {
         <div className="panel-heading"><div><p className="eyebrow">Fixture detail</p><h2>Paired run performance</h2></div><span>{formatTimestamp(summary.created_at)}</span></div>
         <div className="usage-table-wrap"><table className="usage-table"><thead><tr><th>Journey</th><th>Rep.</th><th>Prompt</th>{summary.providers.map((provider) => <th key={`${provider}-latency`}>{providerName(provider)} latency</th>)}{summary.providers.map((provider) => <th key={`${provider}-candidates`}>{providerName(provider)} candidates</th>)}</tr></thead><tbody>{summary.comparisons.map((row) => <tr key={`${row.fixture_id}-${row.repetition}`}><td>{row.fixture_label}<small className="table-subtitle">{row.expected_signal_count} intent signals</small></td><td>{row.repetition}</td><td>{row.prompt_equivalence_verified ? 'Matched' : 'Review'}</td>{summary.providers.map((provider) => <td key={`${provider}-latency`}>{formatLatency(row.providers[provider]?.latency_ms ?? 0)}</td>)}{summary.providers.map((provider) => <td key={`${provider}-candidates`}>{formatNumber(row.providers[provider]?.candidate_count ?? 0)} / {formatNumber(row.target_candidate_count)}</td>)}</tr>)}</tbody></table></div>
       </article>
+
+      <BlindQualityReview summary={summary} />
     </section>
   </>
+}
+
+type ReviewRatings = Record<string, number>
+
+function BlindQualityReview({ summary }: { summary: ProviderComparisonSummary }) {
+  const storageKey = `nameverity-provider-review:${summary.run_id}`
+  const [blind, setBlind] = useState(true)
+  const [ratings, setRatings] = useState<ReviewRatings>(() => {
+    try { return JSON.parse(window.localStorage.getItem(storageKey) || '{}') as ReviewRatings } catch { return {} }
+  })
+  const providerAliases = Object.fromEntries(summary.providers.map((provider, index) => [provider, `Provider ${String.fromCharCode(65 + index)}`])) as Record<ProviderId, string>
+  const setRating = (key: string, value: number) => {
+    const next = { ...ratings, [key]: value }
+    setRatings(next)
+    window.localStorage.setItem(storageKey, JSON.stringify(next))
+  }
+  const averages = summary.providers.map((provider) => {
+    const values = Object.entries(ratings).filter(([key]) => key.endsWith(`:${provider}`)).map(([, value]) => value)
+    return { provider, average: values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0, count: values.length }
+  })
+  return <article className="telemetry-panel telemetry-panel-wide quality-review-panel">
+    <div className="panel-heading"><div><p className="eyebrow">Human review</p><h2>Review actual generated names</h2></div><label className="blind-toggle"><input type="checkbox" checked={blind} onChange={(event) => setBlind(event.target.checked)} /> Hide provider identity</label></div>
+    <p className="comparison-caveat">Rate each complete name set from 1 (weak) to 5 (excellent). Ratings are saved in this browser for this run. All prompts and names below come from synthetic test journeys.</p>
+    {averages.some((row) => row.count) && <div className="review-summary">{averages.map((row) => <span key={row.provider}><strong>{blind ? providerAliases[row.provider] : providerName(row.provider)}</strong>{row.count ? `${row.average.toFixed(1)} / 5 · ${row.count} rated` : 'Not rated'}</span>)}</div>}
+    <div className="review-journeys">{summary.comparisons.map((comparison) => {
+      const prompt = (summary.fixture_prompts ?? []).find((item) => item.fixture_id === comparison.fixture_id)
+      return <section className="review-journey" key={`${comparison.fixture_id}-${comparison.repetition}`}>
+        <div className="review-journey-heading"><div><strong>{comparison.fixture_label}</strong><span>Repetition {comparison.repetition} · exact canonical prompt matched</span></div>{prompt && <details><summary>View synthetic prompt</summary><pre>{JSON.stringify(prompt.prompt, null, 2)}</pre></details>}</div>
+        <div className="review-provider-grid">{summary.providers.map((provider) => {
+          const result = comparison.providers[provider]
+          const ratingKey = `${comparison.fixture_id}:${comparison.repetition}:${provider}`
+          return <section className="review-provider" key={provider}>
+            <div className="review-provider-heading"><div><p className="eyebrow">{blind ? providerAliases[provider] : providerName(provider)}</p>{!blind && <span>{result?.model}</span>}</div><label>Quality score<select value={ratings[ratingKey] ?? ''} onChange={(event) => setRating(ratingKey, Number(event.target.value))}><option value="" disabled>Rate 1–5</option>{[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}</option>)}</select></label></div>
+            {result?.completed ? <div className="candidate-review-list">{(result.candidates ?? []).map((candidate, index) => <CandidateReviewCard candidate={candidate} index={index} key={`${candidate.name}-${index}`} />)}</div> : <p className="empty-panel-copy">This provider did not complete the journey: {result?.error_type || 'unknown error'}.</p>}
+          </section>
+        })}</div>
+      </section>
+    })}</div>
+  </article>
+}
+
+function CandidateReviewCard({ candidate, index }: { candidate: ProviderComparisonCandidate; index: number }) {
+  return <article className="candidate-review-card"><div><span>{index + 1}</span><h3>{candidate.name}</h3>{candidate.pronunciation && <small>{candidate.pronunciation}</small>}</div>{candidate.territory && <p className="candidate-territory">{candidate.territory}</p>}{candidate.rationale && <p>{candidate.rationale}</p>}{(candidate.strengths ?? []).length > 0 && <p><strong>Strengths:</strong> {candidate.strengths.join(' · ')}</p>}{(candidate.risks ?? []).length > 0 && <p><strong>Risks:</strong> {candidate.risks.join(' · ')}</p>}</article>
 }
 
 function ProviderCards({ rows }: { rows: ProviderComparisonMetric[] }) {

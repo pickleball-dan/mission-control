@@ -216,6 +216,17 @@ export type ProviderComparisonRunMetric = {
   average_taste_fit: number
   average_usability: number
   average_distinctiveness: number
+  candidates: ProviderComparisonCandidate[]
+}
+
+export type ProviderComparisonCandidate = {
+  name: string
+  pronunciation: string
+  territory: string
+  rationale: string
+  strengths: string[]
+  risks: string[]
+  scores: Record<string, number>
 }
 
 export type ProviderComparisonSummary = {
@@ -232,6 +243,13 @@ export type ProviderComparisonSummary = {
   fixture_count: number
   comparison_count: number
   prompt_equivalence_verified: boolean
+  fixture_prompts: Array<{
+    fixture_id: string
+    fixture_label: string
+    prompt_fingerprint: string
+    prompt: Record<string, unknown>
+    response_schema: Record<string, unknown>
+  }>
   provider_summary: ProviderComparisonMetric[]
   comparisons: Array<{
     fixture_id: string
