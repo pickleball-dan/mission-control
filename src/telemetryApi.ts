@@ -203,6 +203,7 @@ export type ProviderComparisonRunMetric = {
   model?: string
   completed: boolean
   error_type?: string
+  error_reason?: string
   target_candidate_count: number
   candidate_count: number
   candidate_target_rate: number
