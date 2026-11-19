@@ -74,12 +74,12 @@ export default function NamEngineGenerationQA() {
     } catch (error) {
       if (error instanceof TelemetryError && error.kind === 'unauthorized') {
         setView('unauthorized')
-        setMessage('This Google account is not authorized to view NamEngine Generation QA.')
+        setMessage('This Google account is not authorized to view NameVerity Generation QA.')
       } else {
         setView('unavailable')
         setMessage(error instanceof TelemetryError && error.kind === 'timeout'
-          ? 'NamEngine Generation QA took too long to respond.'
-          : 'NamEngine Generation QA is temporarily unavailable.')
+          ? 'NameVerity Generation QA took too long to respond.'
+          : 'NameVerity Generation QA is temporarily unavailable.')
       }
     }
   }, [])
@@ -95,12 +95,12 @@ export default function NamEngineGenerationQA() {
     } catch (error) {
       if (error instanceof TelemetryError && error.kind === 'unauthorized') {
         setView('unauthorized')
-        setMessage('This Google account is not authorized to view NamEngine Generation QA.')
+        setMessage('This Google account is not authorized to view NameVerity Generation QA.')
       } else {
         setView('unavailable')
         setMessage(error instanceof TelemetryError && error.kind === 'timeout'
-          ? 'NamEngine Generation QA took too long to respond.'
-          : 'NamEngine Generation QA report is temporarily unavailable.')
+          ? 'NameVerity Generation QA took too long to respond.'
+          : 'NameVerity Generation QA report is temporarily unavailable.')
       }
     }
   }, [])
@@ -140,9 +140,6 @@ export default function NamEngineGenerationQA() {
       const completedStatus = {
         available: true,
         summary: response.summary,
-        summary_path: response.summary_path || response.summary.summary_path,
-        report_path: response.report_path || response.summary.report_path,
-        results_path: response.results_path || response.summary.results_path,
       }
       setStatus(completedStatus)
       setView('ready')
@@ -159,7 +156,7 @@ export default function NamEngineGenerationQA() {
     } catch (error) {
       setRunMessage(error instanceof TelemetryError && error.kind === 'timeout'
         ? 'Generation QA timed out before Mission Control received a response.'
-        : 'Generation QA could not run. Try again after NamEngine finishes deploying.')
+        : 'Generation QA could not run. Try again after NameVerity finishes deploying.')
     } finally {
       setRunState('idle')
     }
@@ -183,6 +180,7 @@ export default function NamEngineGenerationQA() {
           <a className="nav-item nav-link" href="/#projects"><Target size={18} /> Projects</a>
           <a className="nav-item nav-link" href="/operating-pulse"><Activity size={18} /> Operating pulse</a>
           <a className="nav-item nav-link active" href="/namengine/generation-qa"><Sparkles size={18} /> Generation QA</a>
+          <a className="nav-item nav-link" href="/nameverity/provider-comparison"><Sparkles size={18} /> AI comparison</a>
         </nav>
         <div className="sidebar-note"><Sparkles size={18} /><div><strong>Provider QA</strong><span>OpenAI first. Claude, Gemini, and others can plug into this comparison lane next.</span></div></div>
       </aside>
@@ -190,9 +188,9 @@ export default function NamEngineGenerationQA() {
       <main>
         <header className="topbar telemetry-topbar">
           <div>
-            <p className="eyebrow">NamEngine operations</p>
+            <p className="eyebrow">NameVerity operations</p>
             <h1>Generation QA</h1>
-            <p>Run and inspect the protected NamEngine generation quality simulator from Mission Control.</p>
+            <p>Run and inspect the protected NameVerity generation quality simulator from Mission Control.</p>
           </div>
           <div className="telemetry-actions">
             {session && <span className="signed-in-user">{session.email}</span>}
@@ -200,9 +198,9 @@ export default function NamEngineGenerationQA() {
           </div>
         </header>
 
-        {(view === 'checking' || view === 'loading') && <StatePanel icon={<RefreshCw className="spin" size={24} />} title="Loading Generation QA" copy="Connecting securely to NamEngine…" />}
+        {(view === 'checking' || view === 'loading') && <StatePanel icon={<RefreshCw className="spin" size={24} />} title="Loading Generation QA" copy="Connecting securely to NameVerity…" />}
 
-        {view === 'signed_out' && <StatePanel icon={<LogIn size={24} />} title="Sign in to run Generation QA" copy="Use an approved Google account. Mission Control stores no NamEngine service credentials." action={<button className="primary-button" disabled={!configured} onClick={() => void beginGoogleSignIn()}><LogIn size={18} /> Continue with Google</button>} />}
+        {view === 'signed_out' && <StatePanel icon={<LogIn size={24} />} title="Sign in to run Generation QA" copy="Use an approved Google account. Mission Control stores no NameVerity service credentials." action={<button className="primary-button" disabled={!configured} onClick={() => void beginGoogleSignIn()}><LogIn size={18} /> Continue with Google</button>} />}
 
         {view === 'unauthorized' && <StatePanel icon={<CircleOff size={24} />} title="Access not available" copy={message || 'This Google account is not authorized to view Generation QA.'} action={<button className="primary-button" onClick={() => void beginGoogleSignIn()}><LogIn size={18} /> Try another account</button>} />}
 
@@ -248,8 +246,7 @@ export default function NamEngineGenerationQA() {
                       <Detail label="Critical anomalies" value={String(criticalAnomalies)} />
                       <Detail label="Major anomalies" value={String(majorAnomalies)} />
                       <Detail label="Verticals" value={(summary.verticals ?? []).join(', ') || '—'} />
-                      <Detail label="Summary path" value={status?.summary_path || summary.summary_path || '—'} />
-                      <Detail label="Report path" value={status?.report_path || summary.report_path || '—'} />
+                      <Detail label="Created" value={summary.created_at ?? 'Latest run'} />
                     </div>
                   </article>
 
@@ -293,7 +290,7 @@ function GenerationQARunReport({ report, status }: { report: GenerationQAReport 
             <Detail label="Critical anomalies" value={String(summary.critical_anomaly_count ?? 0)} />
             <Detail label="Major anomalies" value={String(summary.major_anomaly_count ?? 0)} />
             <Detail label="Minor anomalies" value={String(summary.minor_anomaly_count ?? 0)} />
-            <Detail label="Results path" value={status?.results_path || summary.results_path || '—'} />
+            <Detail label="Scenarios" value={String(summary.scenario_count ?? 0)} />
           </div>
         </article>
 
@@ -321,7 +318,7 @@ function GenerationQARunReport({ report, status }: { report: GenerationQAReport 
         </article>
 
         <article className="telemetry-panel telemetry-panel-wide">
-          <div className="panel-heading"><div><p className="eyebrow">Scenario outputs</p><h2>Generated names by scenario</h2></div><span>{scenarios.length} scenarios</span></div>
+          <div className="panel-heading"><div><p className="eyebrow">Scenario results</p><h2>Aggregate results by scenario</h2></div><span>{scenarios.length} scenarios</span></div>
           <div className="generation-qa-scenario-list">
             {scenarios.map((scenario) => <ScenarioResult key={scenario.id ?? scenario.label} scenario={scenario} />)}
           </div>
@@ -343,7 +340,7 @@ function ScenarioResult({ scenario }: { scenario: GenerationQAScenario }) {
       {(scenario.rounds ?? []).map((round) => (
         <div className="generation-qa-round" key={round.round_number ?? `${round.provider}-${round.model}`}>
           <div><strong>Round {round.round_number ?? '—'}</strong><span>{round.provider ?? '—'} · {round.model ?? '—'} · {round.pipeline ?? '—'} · {round.latency_ms ?? '—'} ms</span></div>
-          <p>{round.names?.join(', ') || 'No names returned.'}</p>
+          <p>{round.generated_name_count ?? round.names?.length ?? 0} generated names (names remain inside NameVerity)</p>
           {round.anomalies?.length ? <small>{round.anomalies.map((item) => item.message).join(' ')}</small> : null}
         </div>
       ))}

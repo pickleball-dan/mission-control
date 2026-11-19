@@ -38,16 +38,19 @@ npm run build
 
 No database or external service is required for the first release.
 
-## NamEngine OpenAI usage
+## NameVerity AI operations
 
 The `/namengine/openai-usage` and `/namengine/generation-qa` routes remain part of the static Vite application. They authenticate
 with Google using Authorization Code with PKCE and call the dedicated telemetry gateway. The
 gateway validates the Google ID token and server-side email allowlist before making
-authenticated server-to-server requests to NamEngine. Only aggregate telemetry is returned.
+authenticated server-to-server requests to NameVerity. Only aggregate telemetry is returned.
 
-Generation QA uses the same gateway and service token. Mission Control exposes only fallback
-simulator runs in the UI; OpenAI-backed simulator runs stay behind the explicit NamEngine API
-confirmation payload.
+Generation QA uses the same gateway and service token. OpenAI-backed simulator runs stay behind
+an explicit confirmation. The `/nameverity/provider-comparison` route runs a controlled OpenAI
+versus Grok 4.7 comparison with synthetic Baby fixtures, identical prompts, and one to three
+repetitions. The gateway exposes only this fixed aggregate endpoint; it is not a general proxy.
+Generated names, prompts, customer information, file locations, and provider credentials remain
+inside NameVerity.
 
 Mission Control public build configuration:
 

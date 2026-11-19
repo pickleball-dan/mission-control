@@ -64,6 +64,7 @@ export function loadConfig(environment = process.env) {
     callbackUrl: `${missionControlOrigin}/namengine/openai-usage`,
     upstreamTimeoutMs: DEFAULT_TIMEOUT_MS,
     generationQaTimeoutMs: 130_000,
+    providerComparisonTimeoutMs: 900_000,
     maxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES,
     rateLimitMax: 60,
     rateLimitWindowMs: 60_000,
@@ -216,6 +217,31 @@ export function createGatewayServer({
         return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
       }
 
+      if (request.method === 'GET' && url.pathname === '/api/nameverity/provider-comparison') {
+        const bearerToken = authorizationToken(request)
+        const identity = await tokenVerifier.verify(bearerToken)
+        if (!limiter.consume(`identity:${identity.sub}`)) throw new RequestError(429, 'rate_limited')
+        const payload = await fetchProviderComparison(config, fetchImpl)
+        return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/nameverity/provider-comparison/run') {
+        const bearerToken = authorizationToken(request)
+        const identity = await tokenVerifier.verify(bearerToken)
+        if (!limiter.consume(`identity:${identity.sub}`)) throw new RequestError(429, 'rate_limited')
+        if (!String(request.headers['content-type'] || '').toLowerCase().startsWith('application/json')) {
+          throw new RequestError(415, 'unsupported_media_type')
+        }
+        const body = await readJsonBody(request, 1024)
+        const mode = boundedString(body.mode, 'mode', 16)
+        const repetitions = Number(body.repetitions)
+        if ((mode !== 'fast' && mode !== 'full') || !Number.isInteger(repetitions) || repetitions < 1 || repetitions > 3 || body.confirm_ai !== true) {
+          throw new RequestError(400, 'invalid_request')
+        }
+        const payload = await runProviderComparison({ mode, repetitions, confirm_ai: true }, config, fetchImpl)
+        return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
+      }
+
       throw new RequestError(404, 'not_found')
     } catch (error) {
       const status = error instanceof RequestError ? error.status : 500
@@ -310,6 +336,27 @@ async function runGenerationQA(body, config, fetchImpl) {
   }, { ...config, upstreamTimeoutMs: config.generationQaTimeoutMs }, fetchImpl, isGenerationQARunResponse)
 }
 
+async function fetchProviderComparison(config, fetchImpl) {
+  return fetchNamEngineJson(providerComparisonUrl(config), {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${config.telemetryToken}`,
+    },
+  }, config, fetchImpl, isProviderComparisonStatus)
+}
+
+async function runProviderComparison(body, config, fetchImpl) {
+  return fetchNamEngineJson(providerComparisonUrl(config, '/run'), {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${config.telemetryToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }, { ...config, upstreamTimeoutMs: config.providerComparisonTimeoutMs }, fetchImpl, isProviderComparisonRunResponse)
+}
+
 async function fetchNamEngineJson(target, options, config, fetchImpl, validate) {
   let upstream
   try {
@@ -335,6 +382,10 @@ function generationQAUrl(config, suffix = '') {
   return new URL(`/api/internal/mission-control/generation-qa${suffix}`, config.telemetryUrl)
 }
 
+function providerComparisonUrl(config, suffix = '') {
+  return new URL(`/api/internal/mission-control/provider-comparison${suffix}`, config.telemetryUrl)
+}
+
 function isGenerationQAStatus(payload) {
   return Boolean(payload && typeof payload === 'object' && typeof payload.available === 'boolean' && 'summary' in payload)
 }
@@ -345,6 +396,20 @@ function isGenerationQAReport(payload) {
 
 function isGenerationQARunResponse(payload) {
   return Boolean(payload && typeof payload === 'object' && payload.status === 'completed' && payload.summary && typeof payload.summary.run_id === 'string')
+}
+
+function isProviderComparisonStatus(payload) {
+  return Boolean(payload && typeof payload === 'object' && typeof payload.available === 'boolean' && 'summary' in payload)
+}
+
+function isProviderComparisonRunResponse(payload) {
+  return Boolean(
+    payload
+      && typeof payload === 'object'
+      && payload.status === 'completed'
+      && payload.summary?.schema_version === 'nameverity-provider-comparison-v1'
+      && Array.isArray(payload.summary.provider_summary),
+  )
 }
 
 function allowedQuery(searchParams) {

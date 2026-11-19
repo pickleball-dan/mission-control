@@ -44,7 +44,7 @@ export default function NamEngineCostSummaryCard() {
   const content = cardContent(state, spend, requestCount)
 
   return (
-    <a className={`metric-card metric-card-link ai-spend-card ai-spend-card-${state}`} href="/namengine/openai-usage" aria-label="Open NamEngine AI cost">
+    <a className={`metric-card metric-card-link ai-spend-card ai-spend-card-${state}`} href="/namengine/openai-usage" aria-label="Open NameVerity AI cost">
       <div className="metric-icon">{content.icon}</div>
       <div>
         <span>{content.label}</span>
@@ -57,21 +57,21 @@ export default function NamEngineCostSummaryCard() {
 
 function cardContent(state: CardState, spend: number, requestCount: number) {
   if (state === 'loading') {
-    return { icon: <RefreshCw className="spin" size={20} />, label: 'NamEngine AI spend', value: 'Loading', note: 'Checking last 24 hours' }
+    return { icon: <RefreshCw className="spin" size={20} />, label: 'NameVerity AI spend', value: 'Loading', note: 'Checking last 24 hours' }
   }
   if (state === 'ready') {
-    return { icon: <Coins size={20} />, label: 'NamEngine AI spend', value: formatCurrency(spend), note: `${formatNumber(requestCount)} requests · last 24 hours` }
+    return { icon: <Coins size={20} />, label: 'NameVerity AI spend', value: formatCurrency(spend), note: `${formatNumber(requestCount)} requests · last 24 hours` }
   }
   if (state === 'empty') {
-    return { icon: <Coins size={20} />, label: 'NamEngine AI spend', value: formatCurrency(0), note: 'No usage in last 24 hours' }
+    return { icon: <Coins size={20} />, label: 'NameVerity AI spend', value: formatCurrency(0), note: 'No usage in last 24 hours' }
   }
   if (state === 'signed_out') {
-    return { icon: <LogIn size={20} />, label: 'NamEngine AI spend', value: 'Sign in', note: 'Tap to view cost' }
+    return { icon: <LogIn size={20} />, label: 'NameVerity AI spend', value: 'Sign in', note: 'Tap to view cost' }
   }
   if (state === 'unconfigured') {
-    return { icon: <TriangleAlert size={20} />, label: 'NamEngine AI spend', value: 'Not wired', note: 'Telemetry config missing' }
+    return { icon: <TriangleAlert size={20} />, label: 'NameVerity AI spend', value: 'Not wired', note: 'Telemetry config missing' }
   }
-  return { icon: <TriangleAlert size={20} />, label: 'NamEngine AI spend', value: 'Unavailable', note: 'Tap for details' }
+  return { icon: <TriangleAlert size={20} />, label: 'NameVerity AI spend', value: 'Unavailable', note: 'Tap for details' }
 }
 
 function reportCost(report: { summary: CostRow; requests_by_day: CostRow[] }): number {

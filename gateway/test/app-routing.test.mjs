@@ -32,6 +32,13 @@ test('/namengine/generation-qa routes to the Generation QA component', async () 
   assert.match(source, /path === '\/namengine\/generation-qa'[\s\S]*NamEngineGenerationQA/)
 })
 
+test('/nameverity/provider-comparison routes to the provider comparison component', async () => {
+  const source = await appSource()
+
+  assert.match(source, /path === '\/nameverity\/provider-comparison'/)
+  assert.match(source, /path === '\/nameverity\/provider-comparison'[\s\S]*NameVerityProviderComparison/)
+})
+
 test('Operating pulse navigation targets /operating-pulse', async () => {
   const source = await appSource()
 
@@ -44,6 +51,13 @@ test('Generation QA navigation targets /namengine/generation-qa', async () => {
 
   assert.match(source, /href="\/namengine\/generation-qa"/)
   assert.match(source, /> Generation QA<\/a>/)
+})
+
+test('AI comparison navigation targets /nameverity/provider-comparison', async () => {
+  const source = await appSource()
+
+  assert.match(source, /href="\/nameverity\/provider-comparison"/)
+  assert.match(source, /> AI comparison<\/a>/)
 })
 
 test('/ falls back to the existing portfolio dashboard', async () => {
