@@ -37,6 +37,12 @@ import {
 } from './telemetryAuth'
 
 type ViewState = 'checking' | 'signed_out' | 'loading' | 'ready' | 'empty' | 'unauthorized' | 'unavailable'
+type RunAttempt = {
+  status: 'running' | 'completed' | 'failed'
+  startedAt: string
+  finishedAt?: string
+  message: string
+}
 
 export default function NameVerityProviderComparison() {
   const [session, setSession] = useState<TelemetrySession | null>(null)
@@ -48,6 +54,7 @@ export default function NameVerityProviderComparison() {
   const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([])
   const [selectedProviders, setSelectedProviders] = useState<ProviderId[]>(['openai', 'xai'])
   const [repetitions, setRepetitions] = useState(1)
+  const [runAttempt, setRunAttempt] = useState<RunAttempt | null>(null)
 
   useEffect(() => {
     let active = true
@@ -107,16 +114,32 @@ export default function NameVerityProviderComparison() {
     const providerLabel = selectedProviders.map(providerName).join(', ')
     if (!window.confirm(`Run ${providerLabel} side by side across the ${pack} synthetic Baby journey pack, ${repetitions} time${repetitions === 1 ? '' : 's'}? This makes live paid API calls and may take several minutes.`)) return
     setRunning(true)
-    setMessage(`Running the same NameVerity prompts through ${providerLabel}…`)
+    setMessage('')
+    const startedAt = new Date().toISOString()
+    setRunAttempt({
+      status: 'running',
+      startedAt,
+      message: `Running the same NameVerity prompts through ${providerLabel}.`,
+    })
     try {
       const response = await runProviderComparison(session, { pack, vertical: 'baby', providers: selectedProviders, repetitions })
       setSummary(response.summary)
       setView('ready')
-      setMessage('Comparison completed.')
+      setRunAttempt({
+        status: 'completed',
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        message: 'Comparison completed successfully. The results below are from this attempt.',
+      })
     } catch (error) {
-      setMessage(error instanceof TelemetryError && error.kind === 'timeout'
-        ? 'The comparison did not finish within the allowed time.'
-        : 'The comparison could not run. Check the NameVerity provider configuration and try again.')
+      setRunAttempt({
+        status: 'failed',
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        message: error instanceof TelemetryError && error.kind === 'timeout'
+          ? 'The comparison did not finish within the allowed time.'
+          : 'The comparison request failed before a new result was saved.',
+      })
     } finally {
       setRunning(false)
     }
@@ -161,7 +184,8 @@ export default function NameVerityProviderComparison() {
           <>
             <ComparisonControls pack={pack} setPack={setPack} providerOptions={providerOptions} selectedProviders={selectedProviders} setSelectedProviders={setSelectedProviders} repetitions={repetitions} setRepetitions={setRepetitions} running={running} onRun={runComparison} onRefresh={() => session && loadComparison(session)} />
             {running && <div className="generation-qa-status-bar" aria-label="Provider comparison in progress"><div /></div>}
-            {message && <p className="generation-qa-run-message">{message}</p>}
+            {runAttempt && <RunAttemptNotice attempt={runAttempt} summary={summary} />}
+            {!runAttempt && message && <p className="generation-qa-run-message">{message}</p>}
             {view === 'empty' && <StatePanel icon={<FlaskConical size={24} />} title="No comparison run yet" copy="Run the first controlled test using synthetic Baby fixtures. No customer data is used." />}
             {view === 'ready' && summary && <ComparisonReport summary={summary} />}
           </>
@@ -169,6 +193,21 @@ export default function NameVerityProviderComparison() {
       </main>
     </div>
   )
+}
+
+function RunAttemptNotice({ attempt, summary }: { attempt: RunAttempt; summary: ProviderComparisonSummary | null }) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    if (attempt.status !== 'running') return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [attempt.status])
+  const started = new Date(attempt.startedAt).getTime()
+  const elapsedSeconds = Math.max(0, Math.floor(((attempt.finishedAt ? new Date(attempt.finishedAt).getTime() : now) - started) / 1000))
+  return <section className={`run-attempt-notice is-${attempt.status}`} role="status">
+    <div><strong>{attempt.status === 'running' ? 'Comparison running' : attempt.status === 'completed' ? 'Comparison completed' : 'Comparison failed'}</strong><span>{attempt.message}</span></div>
+    <dl><div><dt>Started</dt><dd>{formatTimestamp(attempt.startedAt)}</dd></div>{attempt.finishedAt && <div><dt>{attempt.status === 'failed' ? 'Failed' : 'Completed'}</dt><dd>{formatTimestamp(attempt.finishedAt)}</dd></div>}<div><dt>Duration</dt><dd>{formatDuration(elapsedSeconds)}</dd></div>{attempt.status === 'failed' && summary && <div><dt>Results still shown</dt><dd>{formatTimestamp(summary.created_at)}</dd></div>}</dl>
+  </section>
 }
 
 function ComparisonControls({ pack, setPack, providerOptions, selectedProviders, setSelectedProviders, repetitions, setRepetitions, running, onRun, onRefresh }: {
@@ -199,6 +238,7 @@ function ComparisonControls({ pack, setPack, providerOptions, selectedProviders,
 
 function ComparisonReport({ summary }: { summary: ProviderComparisonSummary }) {
   return <>
+    <section className="results-provenance"><BadgeCheck size={18} /><div><strong>Showing last successful comparison</strong><span>Completed {formatTimestamp(summary.created_at)} · Run ID {summary.run_id}</span></div></section>
     <section className="telemetry-metrics" aria-label="Provider comparison summary">
       <UsageCard icon={<BadgeCheck size={20} />} label="Prompt match" value={summary.prompt_equivalence_verified ? 'Verified' : 'Review'} alert={!summary.prompt_equivalence_verified} />
       <UsageCard icon={<FlaskConical size={20} />} label="Paired comparisons" value={formatNumber(summary.comparison_count)} />
@@ -296,6 +336,11 @@ function formatScore(value: number): string { return Number(value || 0).toFixed(
 function formatCurrency(value: number, digits = 2): string { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: digits }).format(value || 0) }
 function formatLatency(value: number): string { return value >= 1_000 ? `${(value / 1_000).toFixed(1)}s` : `${Math.round(value || 0)}ms` }
 function formatTimestamp(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Latest run' : new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(date) }
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}m ${seconds % 60}s`
+}
 function fastestProvider(rows: ProviderComparisonMetric[]): string {
   const completed = rows.filter((row) => row.completed_count > 0 && row.average_latency_ms > 0)
   if (!completed.length) return '—'

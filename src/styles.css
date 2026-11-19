@@ -173,6 +173,19 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .provider-dropdown label small { color: var(--muted); font-size: 10px; }
 .provider-dropdown p { margin: 5px 9px 3px; color: var(--muted); font-size: 10px; }
 .comparison-grid { margin-top: 18px; }
+.run-attempt-notice { margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 18px; background: var(--panel); }
+.run-attempt-notice > div { display: flex; flex-direction: column; gap: 3px; }
+.run-attempt-notice > div span { color: var(--muted); font-size: 12px; }
+.run-attempt-notice dl { margin: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px 18px; }
+.run-attempt-notice dl div { display: flex; flex-direction: column; gap: 2px; }
+.run-attempt-notice dt { color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.run-attempt-notice dd { margin: 0; font-size: 11px; font-weight: 800; }
+.run-attempt-notice.is-running { border-color: #6f9f91; background: #f2f8f5; }
+.run-attempt-notice.is-completed { border-color: #75a88f; background: #eff8f2; }
+.run-attempt-notice.is-failed { border-color: #d36f60; background: #fff2ef; color: #8f352c; }
+.results-provenance { margin: 0 0 14px; padding: 11px 14px; border-left: 4px solid var(--green); border-radius: 10px; background: #f3f6f3; display: flex; align-items: center; gap: 10px; color: var(--green); }
+.results-provenance div { display: flex; flex-direction: column; gap: 2px; }
+.results-provenance span { color: var(--muted); font-size: 11px; }
 .provider-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
 .provider-card { padding: 21px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(135deg, var(--panel), #f4f8f5); }
 .provider-card.is-partial { border-color: #d79853; background: linear-gradient(135deg, #fffaf3, #fff4e5); }
