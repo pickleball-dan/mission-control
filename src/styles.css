@@ -157,8 +157,11 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .comparison-controls > div:first-child span { color: var(--muted); font-size: 12px; }
 .comparison-controls label { white-space: nowrap; }
 .comparison-controls select { min-width: 80px; }
+.provider-selector { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
+.provider-selector label { justify-content: flex-start; color: var(--ink); font-weight: 700; }
+.provider-selector input { accent-color: var(--green); }
 .comparison-grid { margin-top: 18px; }
-.provider-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.provider-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
 .provider-card { padding: 21px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(135deg, var(--panel), #f4f8f5); }
 .provider-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; color: var(--green); }
 .provider-card > p { margin: 5px 0 18px; font-size: 12px; }

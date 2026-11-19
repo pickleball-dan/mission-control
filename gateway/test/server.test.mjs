@@ -226,11 +226,12 @@ test('proxies Generation QA status, report, fallback runs, and confirmed AI runs
 test('proxies only the fixed NameVerity provider-comparison routes', async () => {
   const upstreamRequests = []
   const summary = {
-    schema_version: 'nameverity-provider-comparison-v1',
+    schema_version: 'nameverity-provider-comparison-v2',
     run_id: 'provider-comparison-test',
     prompt_equivalence_verified: true,
     provider_summary: [
       { provider: 'openai', model: 'gpt-4.1-mini', completed_count: 1 },
+      { provider: 'claude', model: 'claude-sonnet-4-5-20250929', completed_count: 1 },
       { provider: 'xai', model: 'grok-4.7', completed_count: 1 },
     ],
     comparisons: [],
@@ -247,7 +248,7 @@ test('proxies only the fixed NameVerity provider-comparison routes', async () =>
   const run = await fetch(`${base}/api/nameverity/provider-comparison/run`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'fast', repetitions: 2, confirm_ai: true }),
+    body: JSON.stringify({ pack: 'standard', vertical: 'baby', providers: ['openai', 'claude', 'xai'], repetitions: 2, confirm_ai: true }),
   })
 
   assert.equal(status.status, 200)
@@ -257,12 +258,12 @@ test('proxies only the fixed NameVerity provider-comparison routes', async () =>
   assert.equal(upstreamRequests[0].url, 'https://namengine.example.com/api/internal/mission-control/provider-comparison')
   assert.equal(upstreamRequests[1].url, 'https://namengine.example.com/api/internal/mission-control/provider-comparison/run')
   assert.equal(upstreamRequests[1].options.headers.Authorization, 'Bearer service-secret')
-  assert.equal(upstreamRequests[1].options.body, JSON.stringify({ mode: 'fast', repetitions: 2, confirm_ai: true }))
+  assert.equal(upstreamRequests[1].options.body, JSON.stringify({ pack: 'standard', vertical: 'baby', providers: ['openai', 'claude', 'xai'], repetitions: 2, confirm_ai: true }))
 
   const invalid = await fetch(`${base}/api/nameverity/provider-comparison/run`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'fast', repetitions: 4, confirm_ai: true }),
+    body: JSON.stringify({ pack: 'smoke', vertical: 'baby', providers: ['openai'], repetitions: 4, confirm_ai: true }),
   })
   assert.equal(invalid.status, 400)
   assert.equal(upstreamRequests.length, 2)

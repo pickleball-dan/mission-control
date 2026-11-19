@@ -178,7 +178,7 @@ export type GenerationQARunResponse = {
 }
 
 export type ProviderComparisonMetric = {
-  provider: 'openai' | 'xai'
+  provider: ProviderId
   model: string
   run_count: number
   completed_count: number
@@ -188,7 +188,9 @@ export type ProviderComparisonMetric = {
   output_tokens: number
   total_tokens: number
   estimated_cost_usd: number
+  target_candidate_count: number
   candidate_count: number
+  candidate_target_rate: number
   duplicate_count: number
   avoid_hit_count: number
   average_taste_fit: number
@@ -197,11 +199,13 @@ export type ProviderComparisonMetric = {
 }
 
 export type ProviderComparisonRunMetric = {
-  provider: 'openai' | 'xai'
+  provider: ProviderId
   model?: string
   completed: boolean
   error_type?: string
+  target_candidate_count: number
   candidate_count: number
+  candidate_target_rate: number
   latency_ms: number
   input_tokens: number
   output_tokens: number
@@ -215,11 +219,14 @@ export type ProviderComparisonRunMetric = {
 }
 
 export type ProviderComparisonSummary = {
-  schema_version: 'nameverity-provider-comparison-v1'
+  schema_version: 'nameverity-provider-comparison-v2'
   run_id: string
   created_at: string
-  comparison: 'openai_vs_xai'
-  providers: Array<'openai' | 'xai'>
+  comparison: string
+  providers: ProviderId[]
+  provider_catalog: ProviderOption[]
+  vertical: 'baby'
+  pack: ComparisonPack
   mode: 'fast' | 'full'
   repetitions: number
   fixture_count: number
@@ -231,14 +238,23 @@ export type ProviderComparisonSummary = {
     fixture_label: string
     vertical: string
     repetition: number
+    expected_signal_count: number
+    target_candidate_count: number
     prompt_fingerprint: string
     prompt_equivalence_verified: boolean
     providers: Record<string, ProviderComparisonRunMetric>
   }>
 }
 
+export type ProviderId = 'openai' | 'claude' | 'xai'
+export type ComparisonPack = 'smoke' | 'standard' | 'full'
+export type ProviderOption = { id: ProviderId; label: string; model: string; configured: boolean }
+
 export type ProviderComparisonStatus = {
   available: boolean
+  providers: ProviderOption[]
+  verticals: Array<'baby'>
+  packs: ComparisonPack[]
   summary: ProviderComparisonSummary | null
 }
 
@@ -332,7 +348,7 @@ export async function fetchProviderComparison(session: TelemetrySession): Promis
 
 export async function runProviderComparison(
   session: TelemetrySession,
-  options: { mode: GenerationQARunMode; repetitions: number },
+  options: { pack: ComparisonPack; vertical: 'baby'; providers: ProviderId[]; repetitions: number },
 ): Promise<ProviderComparisonRunResponse> {
   const config = telemetryPublicConfig()
   if (!config) throw new TelemetryError('configuration')
@@ -344,7 +360,7 @@ export async function runProviderComparison(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: options.mode, repetitions: options.repetitions, confirm_ai: true }),
+      body: JSON.stringify({ ...options, confirm_ai: true }),
     },
   )
 }
@@ -394,7 +410,7 @@ function isProviderComparisonRunResponse(value: unknown): value is ProviderCompa
   return Boolean(
     payload
       && payload.status === 'completed'
-      && payload.summary?.schema_version === 'nameverity-provider-comparison-v1'
+      && payload.summary?.schema_version === 'nameverity-provider-comparison-v2'
       && Array.isArray(payload.summary.provider_summary),
   )
 }

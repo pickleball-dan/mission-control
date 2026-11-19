@@ -233,12 +233,20 @@ export function createGatewayServer({
           throw new RequestError(415, 'unsupported_media_type')
         }
         const body = await readJsonBody(request, 1024)
-        const mode = boundedString(body.mode, 'mode', 16)
+        const pack = boundedString(body.pack, 'pack', 16)
+        const vertical = boundedString(body.vertical, 'vertical', 16)
+        const providers = body.providers
         const repetitions = Number(body.repetitions)
-        if ((mode !== 'fast' && mode !== 'full') || !Number.isInteger(repetitions) || repetitions < 1 || repetitions > 3 || body.confirm_ai !== true) {
+        const providerAllowlist = new Set(['openai', 'claude', 'xai'])
+        const validProviders = Array.isArray(providers)
+          && providers.length >= 2
+          && providers.length <= 3
+          && new Set(providers).size === providers.length
+          && providers.every((provider) => typeof provider === 'string' && providerAllowlist.has(provider))
+        if (!['smoke', 'standard', 'full'].includes(pack) || vertical !== 'baby' || !validProviders || !Number.isInteger(repetitions) || repetitions < 1 || repetitions > 3 || body.confirm_ai !== true) {
           throw new RequestError(400, 'invalid_request')
         }
-        const payload = await runProviderComparison({ mode, repetitions, confirm_ai: true }, config, fetchImpl)
+        const payload = await runProviderComparison({ pack, vertical, providers, repetitions, confirm_ai: true }, config, fetchImpl)
         return sendJson(response, 200, payload, request, config, { 'Cache-Control': 'private, no-store' })
       }
 
@@ -407,7 +415,7 @@ function isProviderComparisonRunResponse(payload) {
     payload
       && typeof payload === 'object'
       && payload.status === 'completed'
-      && payload.summary?.schema_version === 'nameverity-provider-comparison-v1'
+      && payload.summary?.schema_version === 'nameverity-provider-comparison-v2'
       && Array.isArray(payload.summary.provider_summary),
   )
 }
