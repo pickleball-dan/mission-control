@@ -157,9 +157,21 @@ select:focus, input:focus, textarea:focus { border-color: #739083; box-shadow: 0
 .comparison-controls > div:first-child span { color: var(--muted); font-size: 12px; }
 .comparison-controls label { white-space: nowrap; }
 .comparison-controls select { min-width: 80px; }
-.provider-selector { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
-.provider-selector label { justify-content: flex-start; color: var(--ink); font-weight: 700; }
-.provider-selector input { accent-color: var(--green); }
+.provider-multiselect { position: relative; min-width: 220px; }
+.provider-multiselect summary { min-height: 39px; padding: 6px 30px 6px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); cursor: pointer; list-style: none; display: flex; flex-direction: column; justify-content: center; }
+.provider-multiselect summary::-webkit-details-marker { display: none; }
+.provider-multiselect summary::after { content: '⌄'; position: absolute; top: 10px; right: 11px; color: var(--green); font-weight: 900; }
+.provider-multiselect[open] summary { border-color: var(--green); box-shadow: 0 0 0 2px rgba(31,75,65,.08); }
+.provider-multiselect summary span { color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.provider-multiselect summary strong { max-width: 250px; overflow: hidden; color: var(--ink); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.provider-dropdown { position: absolute; z-index: 20; top: calc(100% + 7px); left: 0; min-width: 280px; padding: 8px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); box-shadow: 0 18px 40px rgba(20,38,33,.16); }
+.provider-dropdown label { padding: 9px; border-radius: 9px; display: flex; align-items: center; justify-content: flex-start; gap: 9px; color: var(--ink); cursor: pointer; }
+.provider-dropdown label:hover { background: var(--warm); }
+.provider-dropdown input { accent-color: var(--green); }
+.provider-dropdown label > span { display: flex; flex-direction: column; gap: 2px; }
+.provider-dropdown label strong { font-size: 12px; }
+.provider-dropdown label small { color: var(--muted); font-size: 10px; }
+.provider-dropdown p { margin: 5px 9px 3px; color: var(--muted); font-size: 10px; }
 .comparison-grid { margin-top: 18px; }
 .provider-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
 .provider-card { padding: 21px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(135deg, var(--panel), #f4f8f5); }
